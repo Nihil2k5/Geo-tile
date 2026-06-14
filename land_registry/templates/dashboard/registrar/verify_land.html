@@ -1,0 +1,302 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Verify Land - GeoLedger{% endblock %}
+
+{% block sidebar_menu %}
+<li>
+    <a href="{% url 'land_registry:registrar_dashboard' %}" 
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Dashboard Overview
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:land_registration' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Register Land
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:registrar_verify_land' %}"
+       class="block px-4 py-2 text-gray-700 bg-gray-100">
+        Verify Land
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-2xl font-bold">Verify Land Parcels</h2>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Pending Verifications</h3>
+            
+            {% if parcels %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area (m²)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Legacy</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for parcel in parcels %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ parcel.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ parcel.owner.get_full_name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ parcel.location }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ parcel.area|floatformat:2 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ parcel.created_at|date:"M d, Y" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if parcel.is_legacy %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Legacy
+                                </span>
+                                {% if parcel.legacy_document %}
+                                <a href="{{ parcel.legacy_document.url }}" target="_blank" class="text-blue-600 hover:text-blue-800 ml-2">
+                                    <svg class="h-4 w-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </a>
+                                {% endif %}
+                                {% else %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    Digital
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                <form method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="parcel_id" value="{{ parcel.id }}">
+                                    <input type="hidden" name="action" value="verify">
+                                    <button type="submit"
+                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        Verify
+                                    </button>
+                                </form>
+                                <button type="button"
+                                        onclick="openRejectModal('{{ parcel.id }}')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                    Reject
+                                </button>
+                                {% if parcel.is_legacy and parcel.legacy_document %}
+                                <button type="button"
+                                        onclick="openAIExtractModal('{{ parcel.id }}', '{{ parcel.legacy_document.url }}')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    AI Extract
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if parcels.has_other_pages %}
+            <div class="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if parcels.has_previous %}
+                    <a href="?page={{ parcels.previous_page_number }}"
+                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Previous
+                    </a>
+                    {% endif %}
+                    {% if parcels.has_next %}
+                    <a href="?page={{ parcels.next_page_number }}"
+                       class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Next
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing
+                            <span class="font-medium">{{ parcels.start_index }}</span>
+                            to
+                            <span class="font-medium">{{ parcels.end_index }}</span>
+                            of
+                            <span class="font-medium">{{ parcels.paginator.count }}</span>
+                            results
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            {% if parcels.has_previous %}
+                            <a href="?page={{ parcels.previous_page_number }}"
+                               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Previous</span>
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </a>
+                            {% endif %}
+
+                            {% for i in parcels.paginator.page_range %}
+                                {% if parcels.number == i %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                    {{ i }}
+                                </span>
+                                {% else %}
+                                <a href="?page={{ i }}"
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ i }}
+                                </a>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if parcels.has_next %}
+                            <a href="?page={{ parcels.next_page_number }}"
+                               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Next</span>
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-4">
+                <p class="text-gray-500">No pending land parcels to verify.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium leading-6 text-gray-900">Reject Land Parcel</h3>
+            <form id="rejectForm" method="POST" class="mt-4">
+                {% csrf_token %}
+                <input type="hidden" name="parcel_id" id="reject_parcel_id">
+                <input type="hidden" name="action" value="reject">
+                <div class="mt-2">
+                    <label for="reason" class="block text-sm font-medium text-gray-700">Reason for Rejection</label>
+                    <textarea name="reason" id="reason" rows="3" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                </div>
+                <div class="mt-4 flex justify-end space-x-3">
+                    <button type="button" onclick="closeRejectModal()"
+                            class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Reject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openRejectModal(parcelId) {
+        document.getElementById('reject_parcel_id').value = parcelId;
+        document.getElementById('rejectModal').classList.remove('hidden');
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.add('hidden');
+        document.getElementById('rejectForm').reset();
+    }
+    
+    function openAIExtractModal(parcelId, documentUrl) {
+        document.getElementById('ai_extract_parcel_id').value = parcelId;
+        document.getElementById('ai_document_preview').src = documentUrl;
+        document.getElementById('aiExtractModal').classList.remove('hidden');
+        
+        // Simulate AI processing
+        document.getElementById('ai_processing_status').innerText = "Processing document...";
+        document.getElementById('ai_extract_results').classList.add('hidden');
+        
+        // In a real implementation, this would be an AJAX call to the backend
+        setTimeout(function() {
+            document.getElementById('ai_processing_status').innerText = "Document processed successfully!";
+            document.getElementById('ai_extract_results').classList.remove('hidden');
+        }, 2000);
+    }
+</script>
+
+<!-- AI Extract Modal -->
+<div id="aiExtractModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">AI Document Extraction</h3>
+                    
+                    <div class="mb-4">
+                        <p id="ai_processing_status" class="text-sm text-gray-500">Processing document...</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-medium text-gray-700 mb-2">Document Preview</h4>
+                            <div class="border border-gray-300 rounded-md p-2 h-64 overflow-auto">
+                                <img id="ai_document_preview" src="" alt="Document Preview" class="max-w-full h-auto">
+                            </div>
+                        </div>
+                        
+                        <div id="ai_extract_results" class="hidden">
+                            <h4 class="font-medium text-gray-700 mb-2">Extracted Data</h4>
+                            <div class="border border-gray-300 rounded-md p-4 h-64 overflow-auto">
+                                <div class="mb-3">
+                                    <label class="block text-sm font-medium text-gray-700">Document Type</label>
+                                    <p class="mt-1 text-sm text-gray-900">Title Deed</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="block text-sm font-medium text-gray-700">Owner Name</label>
+                                    <p class="mt-1 text-sm text-gray-900">John Smith</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="block text-sm font-medium text-gray-700">Area</label>
+                                    <p class="mt-1 text-sm text-gray-900">2.5 acres</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="block text-sm font-medium text-gray-700">Coordinates</label>
+                                    <p class="mt-1 text-sm text-gray-900">12.345, 67.890</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="ai_extract_parcel_id" name="parcel_id" value="">
+                <input type="hidden" name="action" value="update_from_ai">
+                <button type="submit"
+                        class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ml-3">
+                    Apply Extracted Data
+                </button>
+            </form>
+            <button type="button"
+                    onclick="document.getElementById('aiExtractModal').classList.add('hidden')"
+                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

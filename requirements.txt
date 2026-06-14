@@ -1,0 +1,21 @@
+
+web3
+pytesseract
+pillow
+python-dotenv
+qrcode
+requests
+ipfshttpclient
+django-tailwind
+celery
+redis
+python-magic
+# Blockchain and Cryptography
+web3==6.15.1
+eth-account==0.11.0
+cryptography==42.0.5
+eth-utils
+django-crispy-forms
+crispy-tailwind
+gunicorn
+whitenoise

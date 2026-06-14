@@ -1,0 +1,95 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Admin Dashboard - GeoLedger{% endblock %}
+
+{% block sidebar_menu %}
+<li>
+    <a href="{% url 'land_registry:admin_dashboard' %}" 
+       class="block px-4 py-2 text-gray-700 bg-gray-100">
+        Dashboard Overview
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:user_management' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        User Management
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:system_metrics' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        System Metrics
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Total Users</h3>
+            <p class="text-3xl font-bold text-primary mt-2">{{ total_users }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Total Parcels</h3>
+            <p class="text-3xl font-bold text-primary mt-2">{{ total_parcels }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Active Disputes</h3>
+            <p class="text-3xl font-bold text-primary mt-2">{{ active_disputes }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">User Roles</h3>
+            <div class="mt-2 space-y-1">
+                {% for role, count in role_distribution.items %}
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">{{ role|title }}</span>
+                    <span class="font-semibold">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Users -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Recent Users</h3>
+            <div class="space-y-4">
+                {% for user in recent_users %}
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium">{{ user.get_full_name }}</p>
+                        <p class="text-sm text-gray-500">{{ user.role|title }}</p>
+                    </div>
+                    <span class="text-sm text-gray-500">
+                        {{ user.date_joined|date:"M d, Y" }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Recent Transactions</h3>
+            <div class="space-y-4">
+                {% for tx in recent_transactions %}
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium">{{ tx.transaction_type|title }}</p>
+                        <p class="text-sm text-gray-500">{{ tx.parcel.address }}</p>
+                    </div>
+                    <span class="text-sm text-gray-500">
+                        {{ tx.timestamp|date:"M d, Y" }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

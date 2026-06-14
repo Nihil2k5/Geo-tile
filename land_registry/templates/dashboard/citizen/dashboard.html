@@ -1,0 +1,580 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Citizen Dashboard{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .animate-fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    .stats-card {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .stats-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, currentColor, transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .stats-card:hover::before {
+        opacity: 1;
+    }
+    .stats-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .action-card {
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .action-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(99, 102, 241, 0.05));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    .action-card:hover::after {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <!-- Dashboard Header -->
+    <div class="mb-6 sm:mb-8 animate-fade-in">
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">My Dashboard</h1>
+        <p class="text-gray-600 text-lg">Welcome back, <span class="font-semibold text-gray-800">{{ request.user.get_full_name }}</span></p>
+    </div>
+
+    <!-- User ID Card (Debit Card Style) - Super Responsive & Modern Design -->
+    <div class="mb-6 sm:mb-8 px-2 sm:px-4 lg:px-0">
+        <div class="relative max-w-lg mx-auto">
+            <!-- Card Container with Enhanced Effects -->
+            <div class="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-[1.02] hover:shadow-3xl relative group" style="min-height: 380px;">
+                <!-- Animated Background Pattern -->
+                <div class="absolute inset-0 opacity-10 group-hover:opacity-15 transition-opacity duration-500">
+                    <div class="absolute inset-0 pattern-animation" style="background-image: radial-gradient(circle at 20% 50%, white 2px, transparent 2px), radial-gradient(circle at 80% 80%, white 2px, transparent 2px); background-size: 60px 60px;"></div>
+                </div>
+                
+                <!-- Glossy Overlay Effect -->
+                <div class="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white opacity-5 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"></div>
+                
+                <!-- Shine Effect on Hover -->
+                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" style="width: 50%;"></div>
+                </div>
+                
+                <!-- Card Content -->
+                <div class="relative p-5 sm:p-6 lg:p-8 h-full flex flex-col justify-between text-white" style="min-height: 380px;">
+                    <!-- Top Section -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-4 mb-4">
+                        <div class="flex-1 min-w-0 w-full sm:w-auto">
+                            <div class="text-[10px] sm:text-xs lg:text-sm opacity-90 mb-2 font-medium tracking-[0.15em]">LAND REGISTRY ID</div>
+                            <div class="text-xl sm:text-2xl lg:text-3xl font-bold break-words leading-tight drop-shadow-lg">
+                                {{ request.user.get_full_name|upper }}
+                            </div>
+                            {% if request.user.first_name or request.user.last_name %}
+                            <div class="text-xs sm:text-sm opacity-80 mt-1">
+                                {% if request.user.first_name %}{{ request.user.first_name }}{% endif %} {% if request.user.last_name %}{{ request.user.last_name }}{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if user_qr_code %}
+                        <div class="bg-white rounded-xl p-2.5 sm:p-3 shadow-2xl flex-shrink-0 transform transition-all duration-300 hover:scale-110 hover:rotate-3 self-center sm:self-auto">
+                            <img src="data:image/png;base64,{{ user_qr_code }}" alt="User QR Code" class="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24">
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Middle Section -->
+                    <div class="my-3 sm:my-4 py-3 border-y border-white border-opacity-20">
+                        <div class="text-[10px] sm:text-xs opacity-75 mb-2 font-medium tracking-wide">USER IDENTIFICATION NUMBER</div>
+                        <div class="text-lg sm:text-2xl lg:text-3xl font-mono font-bold tracking-wider drop-shadow-md">
+                            #{{ request.user.id|stringformat:"06d" }}
+                        </div>
+                    </div>
+                    
+                    <!-- Bottom Section -->
+                    <div class="space-y-3 sm:space-y-3">
+                        <!-- Email -->
+                        {% if request.user.email %}
+                        <div class="bg-white bg-opacity-5 rounded-lg p-3 backdrop-blur-sm">
+                            <div class="text-[10px] sm:text-xs opacity-75 mb-1.5 font-medium">EMAIL ADDRESS</div>
+                            <div class="text-xs sm:text-sm break-all font-medium">{{ request.user.email }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Username and Wallet -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            <div class="bg-white bg-opacity-5 rounded-lg p-3 backdrop-blur-sm">
+                                <div class="text-[10px] sm:text-xs opacity-75 mb-1.5 font-medium">USERNAME</div>
+                                <div class="text-sm sm:text-base font-mono break-all font-semibold">{{ request.user.username|upper }}</div>
+                            </div>
+                            {% if request.user.wallet_address %}
+                            <div class="bg-white bg-opacity-5 rounded-lg p-3 backdrop-blur-sm">
+                                <div class="text-[10px] sm:text-xs opacity-75 mb-1.5 font-medium">WALLET ADDRESS</div>
+                                <div class="text-xs sm:text-sm font-mono break-all" title="{{ request.user.wallet_address }}">
+                                    {{ request.user.wallet_address|slice:":10" }}...{{ request.user.wallet_address|slice:"-8:" }}
+                                </div>
+                                <div class="text-[10px] opacity-60 mt-1 font-mono break-all hidden sm:block">
+                                    {{ request.user.wallet_address }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Footer Info -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 pt-3 border-t border-white border-opacity-20">
+                            <div class="flex-1">
+                                <div class="text-[10px] sm:text-xs opacity-75 font-medium mb-1">MEMBER SINCE</div>
+                                <div class="text-xs sm:text-sm font-semibold">{{ request.user.date_joined|date:"F d, Y" }}</div>
+                                <div class="text-[10px] opacity-60 mt-0.5">{{ request.user.date_joined|date:"g:i A" }}</div>
+                            </div>
+                            <div class="flex-1 sm:text-right">
+                                <div class="text-[10px] sm:text-xs opacity-75 font-medium mb-1">ROLE & STATUS</div>
+                                <div class="text-xs sm:text-sm font-bold uppercase mt-1 inline-block px-4 py-1.5 bg-white bg-opacity-25 backdrop-blur-sm rounded-full border border-white border-opacity-30 shadow-lg">
+                                    {{ request.user.role }}
+                                </div>
+                                {% if request.user.email_verified_at %}
+                                <div class="text-[10px] opacity-60 mt-1 block">Email Verified</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes patternMove {
+            0% {
+                background-position: 0 0, 0 0;
+            }
+            100% {
+                background-position: 60px 60px, -60px -60px;
+            }
+        }
+        
+        .pattern-animation {
+            animation: patternMove 20s linear infinite;
+        }
+        
+        /* Enhanced responsive breakpoints */
+        @media (max-width: 640px) {
+            .max-w-lg {
+                max-width: calc(100% - 1rem);
+            }
+        }
+        
+        /* Smooth animations */
+        @media (prefers-reduced-motion: reduce) {
+            .pattern-animation {
+                animation: none;
+            }
+            * {
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+
+    <!-- Statistics Overview -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-8 animate-fade-in">
+        <!-- Total Properties -->
+        <div class="stats-card bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6 border border-blue-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="bg-blue-500 rounded-lg p-3">
+                    <i class="fas fa-map-marked-alt text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Total Properties</h3>
+            <p class="text-3xl font-bold text-blue-600 mb-1">{{ total_parcels }}</p>
+            <p class="text-xs text-gray-500">Land parcels</p>
+        </div>
+
+        <!-- Total Land Area -->
+        <div class="stats-card bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 border border-green-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="bg-green-500 rounded-lg p-3">
+                    <i class="fas fa-ruler-combined text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Total Area</h3>
+            <p class="text-3xl font-bold text-green-600 mb-1">{{ total_area|floatformat:0 }}</p>
+            <p class="text-xs text-gray-500">Square meters</p>
+        </div>
+
+        <!-- Pending Transfers -->
+        <div class="stats-card bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg p-6 border border-orange-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="bg-orange-500 rounded-lg p-3">
+                    <i class="fas fa-clock text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Pending Transfers</h3>
+            <p class="text-3xl font-bold text-orange-600 mb-1">{{ pending_transfers_count }}</p>
+            <p class="text-xs text-gray-500">{% if pending_transfers_count > 0 %}Awaiting approval{% else %}All clear{% endif %}</p>
+        </div>
+
+        <!-- Approved Transfers -->
+        <div class="stats-card bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-6 border border-indigo-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="bg-indigo-500 rounded-lg p-3">
+                    <i class="fas fa-check-circle text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Approved Transfers</h3>
+            <p class="text-3xl font-bold text-indigo-600 mb-1">{{ approved_transfers_count }}</p>
+            <p class="text-xs text-gray-500">{% if approved_transfers_count > 0 %}Ready to execute{% else %}None{% endif %}</p>
+        </div>
+
+        <!-- Active Disputes -->
+        <div class="stats-card bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-lg p-6 border border-red-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="bg-red-500 rounded-lg p-3">
+                    <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Active Disputes</h3>
+            <p class="text-3xl font-bold text-red-600 mb-1">{{ active_disputes|length }}</p>
+            <p class="text-xs text-gray-500">{% if active_disputes|length > 0 %}Requires attention{% else %}No disputes{% endif %}</p>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mb-8 animate-fade-in">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Quick Actions</h2>
+                <p class="text-gray-600 mt-1">Access frequently used features</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <a href="{% url 'land_registry:my_properties' %}" class="action-card bg-white rounded-xl shadow-lg p-6 border border-gray-200 group">
+                <div class="flex items-start space-x-4">
+                    <div class="bg-blue-100 group-hover:bg-blue-500 rounded-xl p-4 transition-colors">
+                        <i class="fas fa-home text-blue-500 group-hover:text-white text-2xl transition-colors"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">View Properties</h3>
+                        <p class="text-sm text-gray-600">Manage your land parcels and view details</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400 group-hover:text-blue-500 transition-colors mt-1"></i>
+                </div>
+            </a>
+            <a href="{% url 'land_registry:transfer_property' %}" class="action-card bg-white rounded-xl shadow-lg p-6 border border-gray-200 group">
+                <div class="flex items-start space-x-4">
+                    <div class="bg-green-100 group-hover:bg-green-500 rounded-xl p-4 transition-colors">
+                        <i class="fas fa-exchange-alt text-green-500 group-hover:text-white text-2xl transition-colors"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1 group-hover:text-green-600 transition-colors">Transfer Property</h3>
+                        <p class="text-sm text-gray-600">Transfer land ownership to another user</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400 group-hover:text-green-500 transition-colors mt-1"></i>
+                </div>
+            </a>
+            <a href="{% url 'land_registry:manage_disputes' %}" class="action-card bg-white rounded-xl shadow-lg p-6 border border-gray-200 group">
+                <div class="flex items-start space-x-4">
+                    <div class="bg-red-100 group-hover:bg-red-500 rounded-xl p-4 transition-colors">
+                        <i class="fas fa-gavel text-red-500 group-hover:text-white text-2xl transition-colors"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1 group-hover:text-red-600 transition-colors">Manage Disputes</h3>
+                        <p class="text-sm text-gray-600">Handle property disputes and claims</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400 group-hover:text-red-500 transition-colors mt-1"></i>
+                </div>
+            </a>
+        </div>
+        
+        <!-- Property Documents Section -->
+        {% if properties %}
+        <div class="mt-8">
+            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Property Documents</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {% for property in properties %}
+                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900">Property #{{ property.id }}</h4>
+                            <p class="text-sm text-gray-600 mt-1">{{ property.location|truncatewords:8 }}</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <a href="{% url 'land_registry:parcel_complete_history' property.id %}" 
+                           class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-semibold text-center transition-all hover:shadow-lg">
+                            <i class="fas fa-history mr-2"></i>View History
+                        </a>
+                        <a href="{% url 'land_registry:parcel_mother_patta' property.id %}" 
+                           class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-sm font-semibold text-center transition-all hover:shadow-lg">
+                            <i class="fas fa-file-alt mr-2"></i>Decentralized Document
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pending Transfer Requests -->
+    {% if pending_transfers %}
+    <div class="mb-8 animate-fade-in">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Pending Transfer Requests</h2>
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <tr>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Property ID</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Recipient</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Requested</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for transfer in pending_transfers %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                Property #{{ transfer.details.property_id }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if transfer.to_user %}
+                                    {{ transfer.to_user.get_full_name }}
+                                {% else %}
+                                    <span class="font-mono text-xs">{{ transfer.details.recipient_address|truncatechars:20 }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {{ transfer.timestamp|date:"M d, Y" }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                    <i class="fas fa-clock mr-1"></i>Pending
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Approved Transfers Ready for Execution -->
+    {% if approved_transfers %}
+    <div class="mb-8 animate-fade-in">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Approved Transfers - Ready to Execute</h2>
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 sm:px-6 py-4 border-b border-blue-100">
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                    <p class="text-sm text-blue-700">
+                        <strong>Action Required:</strong> These transfers have been approved by registrars. You need to execute them on the blockchain to complete the ownership transfer.
+                    </p>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <tr>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Property ID</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Recipient</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Approved Date</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for transfer in approved_transfers %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ transfer.parcel.parcel_id }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if transfer.to_user %}
+                                    {{ transfer.to_user.get_full_name }}
+                                {% else %}
+                                    <span class="font-mono text-xs">{{ transfer.details.recipient_address|truncatechars:20 }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {{ transfer.approved_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <form method="post" action="{% url 'land_registry:execute_approved_transfer' transfer.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:shadow-lg"
+                                            onclick="return confirm('Are you sure you want to execute this transfer? This action cannot be undone.')">
+                                        <i class="fas fa-check mr-1"></i>Execute
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Transactions -->
+    <div class="mb-8 animate-fade-in">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Recent Transactions</h2>
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <tr>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Property</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for transaction in recent_transactions %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                <div>{{ transaction.timestamp|date:"M d, Y" }}</div>
+                                <div class="text-xs text-gray-500">{{ transaction.timestamp|date:"H:i" }}</div>
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ transaction.get_transaction_type_display }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 text-sm text-gray-600">
+                                {% if transaction.parcel %}
+                                    <div class="font-medium">Parcel #{{ transaction.parcel.id }}</div>
+                                    <div class="text-xs text-gray-500">{{ transaction.parcel.location|truncatewords:4 }}</div>
+                                {% else %}
+                                    <span class="text-gray-400">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border
+                                    {% if transaction.status == 'completed' %}bg-green-100 text-green-800 border-green-200
+                                    {% elif transaction.status == 'pending' or transaction.status == 'pending_approval' %}bg-yellow-100 text-yellow-800 border-yellow-200
+                                    {% elif transaction.status == 'approved' or transaction.status == 'confirmed' %}bg-blue-100 text-blue-800 border-blue-200
+                                    {% elif transaction.status == 'rejected' or transaction.status == 'failed' %}bg-red-100 text-red-800 border-red-200
+                                    {% else %}bg-gray-100 text-gray-800 border-gray-200{% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center">
+                                <i class="fas fa-inbox text-gray-300 text-4xl mb-3"></i>
+                                <p class="text-gray-500">No recent transactions</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Disputes -->
+    <div class="animate-fade-in">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Active Disputes</h2>
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <tr>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Property</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Filed Date</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for dispute in active_disputes %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ dispute.property }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {{ dispute.filed_date }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>{{ dispute.status }}
+                                </span>
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
+                                    View Details <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center">
+                                <i class="fas fa-check-circle text-green-300 text-4xl mb-3"></i>
+                                <p class="text-gray-500">No active disputes</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyWalletAddress() {
+    const walletAddress = document.getElementById('walletAddress').textContent;
+    navigator.clipboard.writeText(walletAddress).then(function() {
+        // Show success message
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+        button.classList.add('text-green-600');
+        
+        setTimeout(function() {
+            button.innerHTML = originalHTML;
+            button.classList.remove('text-green-600');
+            button.classList.add('text-blue-600');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy wallet address: ', err);
+        alert('Failed to copy wallet address');
+    });
+}
+</script>
+{% endblock %}

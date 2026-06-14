@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land Verification Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #10b981;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #10b981;
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .info-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #d1fae5;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .info-value {
+            color: #333;
+            text-align: right;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #10b981;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .success-message {
+            background-color: #ecfdf5;
+            border: 1px solid #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>✅ GeoLedger - Land Verification</h1>
+            <p>Land Verification Confirmation</p>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ owner.get_full_name }},</p>
+            
+            <div class="success-message">
+                <strong style="color: #10b981; font-size: 18px;">Congratulations!</strong>
+                <p style="margin: 10px 0 0 0;">Your land parcel has been successfully verified and is now active in the GeoLedger system.</p>
+            </div>
+            
+            <div class="info-box">
+                <h2 style="margin-top: 0; color: #10b981;">Parcel Details</h2>
+                <div class="info-row">
+                    <span class="info-label">Parcel ID:</span>
+                    <span class="info-value"><strong>#{{ parcel_id }}</strong></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Location:</span>
+                    <span class="info-value">{{ location|default:"Not specified" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Area:</span>
+                    <span class="info-value">{{ area|floatformat:2 }} m²</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Verification Date:</span>
+                    <span class="info-value">{{ verification_date|date:"F d, Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value"><span class="status-badge">{{ status }}</span></span>
+                </div>
+                {% if blockchain_tx_hash %}
+                <div class="info-row">
+                    <span class="info-label">Blockchain Transaction:</span>
+                    <span class="info-value" style="font-family: monospace; font-size: 11px;">{{ blockchain_tx_hash|truncatechars:20 }}...</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <p><strong>What This Means:</strong></p>
+            <ul>
+                <li>Your land parcel has been verified and registered on the blockchain.</li>
+                <li>The ownership has been recorded immutably in the blockchain.</li>
+                <li>You can now transfer, sell, or manage your land through the GeoLedger system.</li>
+                <li>Your parcel details are secure and tamper-proof on the blockchain.</li>
+            </ul>
+            
+            {% if parcel_qr_code %}
+            <div class="info-box" style="text-align: center; margin: 30px 0;">
+                <h3 style="margin-top: 0; color: #10b981;">Verified Parcel QR Code</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Scan this QR code to access your verified parcel information</p>
+                <img src="data:image/png;base64,{{ parcel_qr_code }}" alt="Verified Parcel QR Code" style="max-width: 200px; width: 100%; height: auto; border: 2px solid #d1fae5; border-radius: 8px; padding: 10px; background: white;">
+                <p style="font-size: 12px; color: #888; margin-top: 10px;">This QR code contains your verified parcel details for easy access and verification</p>
+            </div>
+            {% endif %}
+            
+            <p>You can view your verified parcel, download the official document (Mother Patta), and manage your land properties by logging into your GeoLedger account.</p>
+            
+            <div style="text-align: center;">
+                <a href="http://{{ site_domain }}{% url 'land_registry:login' %}" class="button">View Your Verified Parcel</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated email from GeoLedger - Blockchain-Based Land Registry System</p>
+            <p>Please do not reply to this email.</p>
+            <p>&copy; {% now "Y" %} GeoLedger. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

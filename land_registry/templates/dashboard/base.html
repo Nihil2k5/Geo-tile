@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GeoLedger{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md">
+            <div class="p-4">
+                <h1 class="text-2xl font-bold text-gray-800">GeoTile-Ledger</h1>
+            </div>
+            
+            <!-- User Info -->
+            <div class="p-4 border-t border-b border-gray-200">
+                <div class="flex items-center mb-4">
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-700">{{ user.get_full_name }}</p>
+                        <p class="text-xs text-gray-500">{{ user.role|title }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="mt-4">
+                <ul class="space-y-2">
+                    {% block sidebar_menu %}
+                    <li>
+                        <a href="{% url 'land_registry:dashboard' %}" 
+                           class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <form method="post" action="{% url 'land_registry:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                   class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+                                Logout
+                            </button>
+                        </form>
+                    </li>
+                    {% endblock %}
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8">
+            {% if messages %}
+            <div class="mb-8">
+                {% for message in messages %}
+                <div class="p-4 mb-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

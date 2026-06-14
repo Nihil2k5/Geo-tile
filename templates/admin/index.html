@@ -1,0 +1,393 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <h1 style="color: var(--gov-primary); font-size: 28px; margin-bottom: 10px;">
+            🏛️ Government Land Registry Dashboard
+        </h1>
+        <p style="color: #64748b; font-size: 16px; margin: 0;">
+            Real-time overview of land registry operations and blockchain transactions
+        </p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div class="stat-card" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Total Parcels</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 32px; font-weight: bold;">{{ total_parcels|default:"0" }}</p>
+                </div>
+                <div style="font-size: 40px; opacity: 0.8;">🏞️</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Active Users</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 32px; font-weight: bold;">{{ active_users|default:"0" }}</p>
+                </div>
+                <div style="font-size: 40px; opacity: 0.8;">👥</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Pending Disputes</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 32px; font-weight: bold;">{{ pending_disputes|default:"0" }}</p>
+                </div>
+                <div style="font-size: 40px; opacity: 0.8;">⚖️</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Blockchain Transactions</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 32px; font-weight: bold;">{{ blockchain_transactions|default:"0" }}</p>
+                </div>
+                <div style="font-size: 40px; opacity: 0.8;">🔗</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+        <!-- Parcel Status Chart -->
+        <div class="chart-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 400px;">
+            <h3 style="margin: 0 0 20px 0; color: var(--gov-primary); font-size: 18px;">📊 Parcel Status Distribution</h3>
+            <div style="position: relative; height: 320px;">
+                <canvas id="parcelStatusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Monthly Registrations Chart -->
+        <div class="chart-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 400px;">
+            <h3 style="margin: 0 0 20px 0; color: var(--gov-primary); font-size: 18px;">📈 Monthly Registrations</h3>
+            <div style="position: relative; height: 320px;">
+                <canvas id="monthlyRegistrationsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="dashboard-section" style="background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
+        <h3 style="margin: 0 0 20px 0; color: #1f2937; font-size: 18px; font-weight: 600;">Recent Activity</h3>
+        <div class="activity-list">
+            {% if latest_parcel %}
+            <div class="activity-item" style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+                <div style="width: 40px; height: 40px; background: #dbeafe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                    <span style="color: #3b82f6; font-size: 18px;">🏞️</span>
+                </div>
+                <div>
+                    <p style="margin: 0; font-weight: 500; color: #1f2937;">New parcel registered: {{ latest_parcel.parcel_id }}</p>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">{{ latest_parcel.created_at|timesince }} ago</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if latest_user %}
+            <div class="activity-item" style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+                <div style="width: 40px; height: 40px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                    <span style="color: #059669; font-size: 18px;">👤</span>
+                </div>
+                <div>
+                    <p style="margin: 0; font-weight: 500; color: #1f2937;">New user registered: {{ latest_user.get_full_name }}</p>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">{{ latest_user.date_joined|timesince }} ago</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="activity-item" style="display: flex; align-items: center; padding: 12px 0;">
+                <div style="width: 40px; height: 40px; background: #fef3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                    <span style="color: #d97706; font-size: 18px;">🔗</span>
+                </div>
+                <div>
+                    <p style="margin: 0; font-weight: 500; color: #1f2937;">{{ blockchain_transactions }} blockchain transactions processed</p>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">System status: Active</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 20px 0; color: var(--gov-primary); font-size: 18px;">⚡ Quick Actions</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <a href="{% url 'admin:land_registry_parcel_add' %}" class="quick-action-btn" style="display: block; padding: 15px; background: linear-gradient(135deg, var(--gov-success) 0%, #10b981 100%); color: white; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600; transition: transform 0.2s;">
+                🏞️ Register New Parcel
+            </a>
+            <a href="{% url 'admin:land_registry_user_changelist' %}" class="quick-action-btn" style="display: block; padding: 15px; background: linear-gradient(135deg, var(--gov-secondary) 0%, var(--gov-primary) 100%); color: white; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600; transition: transform 0.2s;">
+                👥 Manage Users
+            </a>
+            <a href="{% url 'admin:land_registry_dispute_changelist' %}" class="quick-action-btn" style="display: block; padding: 15px; background: linear-gradient(135deg, var(--gov-accent) 0%, #ef4444 100%); color: white; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600; transition: transform 0.2s;">
+                ⚖️ Review Disputes
+            </a>
+            <a href="/admin/" class="quick-action-btn" style="display: block; padding: 15px; background: linear-gradient(135deg, var(--gov-warning) 0%, #f59e0b 100%); color: white; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600; transition: transform 0.2s;">
+                📊 View Reports
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Original Django Admin Content -->
+<div style="margin-top: 40px;">
+    {% if app_list %}
+        {% for app in app_list %}
+            <div class="app-{{ app.app_label }} module">
+                <table>
+                    <caption>
+                        <a href="{{ app.app_url }}" class="section" title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">{{ app.name }}</a>
+                    </caption>
+                    {% for model in app.models %}
+                        <tr class="model-{{ model.object_name|lower }}">
+                            {% if model.admin_url %}
+                                <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+                            {% else %}
+                                <th scope="row">{{ model.name }}</th>
+                            {% endif %}
+
+                            {% if model.add_url %}
+                                <td><a href="{{ model.add_url }}" class="addlink">{% translate 'Add' %}</a></td>
+                            {% else %}
+                                <td>&nbsp;</td>
+                            {% endif %}
+
+                            {% if model.admin_url %}
+                                {% if model.view_only %}
+                                    <td><a href="{{ model.admin_url }}" class="viewlink">{% translate 'View' %}</a></td>
+                                {% else %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %}</a></td>
+                                {% endif %}
+                            {% else %}
+                                <td>&nbsp;</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>{% translate "You don't have permission to view or edit anything." %}</p>
+    {% endif %}
+</div>
+
+<!-- Django data for JavaScript -->
+<script>
+window.djangoData = {
+    parcelStats: {
+        active: {{ parcel_stats.active|default:0 }},
+        pending: {{ parcel_stats.pending|default:0 }},
+        surveyed: {{ parcel_stats.surveyed|default:0 }},
+        disputed: {{ parcel_stats.disputed|default:0 }},
+        locked: {{ parcel_stats.locked|default:0 }},
+        rejected: {{ parcel_stats.rejected|default:0 }}
+    },
+    totalParcels: {{ total_parcels|default:0 }},
+    monthlyRegistrations: [
+        {% for month_data in monthly_registrations %}
+        {
+            month: '{{ month_data.month }}',
+            count: {{ month_data.count|default:0 }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+};
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch dashboard data
+    fetchDashboardData();
+    
+    // Initialize charts
+    initializeCharts();
+    
+    // Add hover effects to quick action buttons
+    document.querySelectorAll('.quick-action-btn').forEach(btn => {
+        btn.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        btn.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+
+function fetchDashboardData() {
+    // This would typically fetch data from your Django backend
+    // For now, we'll use mock data
+    updateStatistics();
+}
+
+function updateStatistics() {
+    // Statistics are now rendered server-side via Django template variables
+    // This function can be used for real-time updates if needed
+    console.log('Statistics loaded from server-side template');
+}
+
+function initializeCharts() {
+    // Parcel Status Chart
+    const parcelStatusCtx = document.getElementById('parcelStatusChart').getContext('2d');
+    
+    // Get parcel status data from Django context with fallback values
+    const parcelStatusData = window.djangoData.parcelStats || {};
+    
+    new Chart(parcelStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active', 'Pending', 'Surveyed', 'Disputed', 'Locked', 'Rejected'],
+            datasets: [{
+                data: [
+                    parcelStatusData.active || 0,
+                    parcelStatusData.pending || 0,
+                    parcelStatusData.surveyed || 0,
+                    parcelStatusData.disputed || 0,
+                    parcelStatusData.locked || 0,
+                    parcelStatusData.rejected || 0
+                ],
+                backgroundColor: ['#059669', '#d97706', '#3b82f6', '#dc2626', '#6b7280', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+
+    // Monthly Registrations Chart - using real Django data
+    const monthlyCtx = document.getElementById('monthlyRegistrationsChart').getContext('2d');
+    
+    // Get monthly registration data from Django context with fallback
+    const monthlyData = window.djangoData.monthlyRegistrations || [];
+    const monthlyLabels = monthlyData.map(item => item.month || '');
+    const monthlyCounts = monthlyData.map(item => item.count || 0);
+    
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: 'New Registrations',
+                data: monthlyCounts,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+
+<style>
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.chart-container {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    height: 400px;
+    min-height: 400px;
+}
+
+.chart-container canvas {
+    max-height: 320px !important;
+}
+
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    
+    .chart-container {
+        height: 350px;
+        min-height: 350px;
+    }
+    
+    .chart-container canvas {
+        max-height: 270px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .dashboard-container {
+        padding: 0 10px;
+    }
+    
+    .chart-container {
+        height: 300px;
+        min-height: 300px;
+        padding: 15px;
+    }
+    
+    .chart-container canvas {
+        max-height: 220px !important;
+    }
+}
+</style>
+{% endblock %}

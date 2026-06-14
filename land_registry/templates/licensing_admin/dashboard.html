@@ -1,0 +1,181 @@
+{% extends "licensing_admin/base.html" %}
+
+{% block admin_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Licensing Administration</h1>
+        <p class="text-gray-600 mt-1">Manage licenses, requests, and system modules</p>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-2">
+                <div class="bg-blue-500 rounded-lg p-3">
+                    <i class="fas fa-certificate text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Total Licenses</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ total_licenses }}</p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-green-200">
+            <div class="flex items-center justify-between mb-2">
+                <div class="bg-green-500 rounded-lg p-3">
+                    <i class="fas fa-check-circle text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Active</h3>
+            <p class="text-3xl font-bold text-green-600">{{ active_licenses }}</p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-yellow-200">
+            <div class="flex items-center justify-between mb-2">
+                <div class="bg-yellow-500 rounded-lg p-3">
+                    <i class="fas fa-clock text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Pending Requests</h3>
+            <p class="text-3xl font-bold text-yellow-600">{{ pending_requests }}</p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-red-200">
+            <div class="flex items-center justify-between mb-2">
+                <div class="bg-red-500 rounded-lg p-3">
+                    <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-600 mb-1">Expiring Soon</h3>
+            <p class="text-3xl font-bold text-red-600">{{ expiring_soon }}</p>
+            <p class="text-xs text-gray-500 mt-1">Within 30 days</p>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Recent Licenses -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Licenses</h2>
+            </div>
+            <div class="p-6">
+                {% if recent_licenses %}
+                <div class="space-y-3">
+                    {% for license in recent_licenses %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <a href="{% url 'land_registry:licensing_admin_license_detail' license.id %}" 
+                               class="font-semibold text-gray-900 hover:text-blue-600">
+                                {{ license.license_number }}
+                            </a>
+                            <p class="text-sm text-gray-600">{{ license.institution_name }}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                            {% if license.status == 'active' %}bg-green-100 text-green-800
+                            {% elif license.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif license.status == 'expired' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ license.get_status_display }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No licenses yet</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent Requests -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Requests</h2>
+            </div>
+            <div class="p-6">
+                {% if recent_requests %}
+                <div class="space-y-3">
+                    {% for req in recent_requests %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-semibold text-gray-900">{{ req.institution_name }}</p>
+                            <p class="text-sm text-gray-600">{{ req.get_request_type_display }}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                            {% if req.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif req.status == 'approved' %}bg-green-100 text-green-800
+                            {% elif req.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ req.get_status_display }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No requests yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Module Statistics -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Module Usage Statistics</h2>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {% for module in module_stats %}
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-semibold text-gray-900">{{ module.name }}</h3>
+                        {% if module.is_mandatory %}
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Mandatory</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">{{ module.description|truncatewords:10 }}</p>
+                    <p class="text-lg font-bold text-blue-600">{{ module.license_count }} active licenses</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Audit Log -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200 mt-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Recent Audit Activity</h2>
+            <a href="{% url 'land_registry:licensing_admin_audit_log' %}" 
+               class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+        </div>
+        <div class="p-6">
+            {% if recent_audit_logs %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">License</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Performed By</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for log in recent_audit_logs %}
+                        <tr>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ log.timestamp|date:"M d, Y H:i" }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ log.license.license_number }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ log.get_action_display }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ log.performed_by.username|default:"System" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-4">No audit logs yet</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

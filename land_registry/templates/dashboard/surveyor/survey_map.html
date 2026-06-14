@@ -1,0 +1,191 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Survey Map - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
+<style>
+    #map {
+        width: 100%;
+        height: 600px;
+        border-radius: 0.5rem;
+    }
+    .mapboxgl-ctrl-top-right {
+        margin-top: 60px;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar_menu %}
+<li>
+    <a href="{% url 'land_registry:surveyor_dashboard' %}" 
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Dashboard Overview
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:survey_list' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Survey List
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:survey_map' %}"
+       class="block px-4 py-2 text-gray-700 bg-gray-100">
+        Survey Map
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">Survey Map</h2>
+        <div class="flex space-x-4">
+            <button id="saveButton"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hidden">
+                Save Survey
+            </button>
+            <select id="parcelSelect" 
+                    class="block w-64 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                <option value="">Select a parcel to survey</option>
+                {% for parcel in parcels %}
+                <option value="{{ parcel.id }}" 
+                        data-location="{{ parcel.location }}"
+                        data-area="{{ parcel.area }}">
+                    ID: {{ parcel.id }} - {{ parcel.location }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <!-- Map Container -->
+        <div id="map"></div>
+
+        <!-- Survey Details Form -->
+        <form id="surveyForm" class="mt-6 space-y-4 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="coordinates" class="block text-sm font-medium text-gray-700">Coordinates</label>
+                    <textarea id="coordinates" name="coordinates" rows="3" readonly
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
+                </div>
+                <div>
+                    <label for="area" class="block text-sm font-medium text-gray-700">Calculated Area (m²)</label>
+                    <input type="number" id="area" name="area" readonly
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="boundaries" class="block text-sm font-medium text-gray-700">Boundary Description</label>
+                    <textarea id="boundaries" name="boundaries" rows="3"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              placeholder="Describe the land boundaries..."></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    mapboxgl.accessToken = '{{ mapbox_token }}';
+    
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: [0, 0],
+        zoom: 2
+    });
+
+    const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+            polygon: true,
+            trash: true
+        }
+    });
+    map.addControl(draw);
+
+    const parcelSelect = document.getElementById('parcelSelect');
+    const surveyForm = document.getElementById('surveyForm');
+    const saveButton = document.getElementById('saveButton');
+    const coordinatesInput = document.getElementById('coordinates');
+    const areaInput = document.getElementById('area');
+
+    parcelSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const location = selectedOption.dataset.location;
+            // Use geocoding to center map on location
+            fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json?access_token=${mapboxgl.accessToken}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.features.length > 0) {
+                        const [lng, lat] = data.features[0].center;
+                        map.flyTo({
+                            center: [lng, lat],
+                            zoom: 15
+                        });
+                    }
+                });
+            surveyForm.classList.remove('hidden');
+            saveButton.classList.remove('hidden');
+        } else {
+            surveyForm.classList.add('hidden');
+            saveButton.classList.add('hidden');
+        }
+    });
+
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
+
+    function updateArea(e) {
+        const data = draw.getAll();
+        if (data.features.length > 0) {
+            const area = turf.area(data.features[0]);
+            const coordinates = JSON.stringify(data.features[0].geometry.coordinates);
+            
+            coordinatesInput.value = coordinates;
+            areaInput.value = Math.round(area * 100) / 100;
+        }
+    }
+
+    saveButton.addEventListener('click', function() {
+        const parcelId = parcelSelect.value;
+        if (!parcelId) return;
+
+        const formData = new FormData();
+        formData.append('coordinates', coordinatesInput.value);
+        formData.append('area', areaInput.value);
+        formData.append('boundaries', document.getElementById('boundaries').value);
+
+        fetch(`/land-registry/survey/${parcelId}/update/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Survey updated successfully');
+                window.location.href = '{% url "land_registry:survey_list" %}';
+            } else {
+                alert('Error updating survey: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error updating survey: ' + error);
+        });
+    });
+</script>
+{% endblock %}

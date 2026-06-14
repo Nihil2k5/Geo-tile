@@ -1,0 +1,1126 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_head %}
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<!-- jQuery for AJAX functionality -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+    /* Custom animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    .animate-slide-in-left {
+        animation: slideInLeft 0.6s ease-out;
+    }
+
+    .animate-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    /* Timeline styles */
+    .timeline-line {
+        position: absolute;
+        left: 1rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, #3b82f6, #6366f1);
+    }
+
+    .timeline-dot {
+        position: absolute;
+        left: -0.75rem;
+        top: 1rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 0 0 3px #3b82f6;
+    }
+
+    .timeline-dot-success { background: #10b981; box-shadow: 0 0 0 3px #10b981; }
+    .timeline-dot-warning { background: #f59e0b; box-shadow: 0 0 0 3px #f59e0b; }
+    .timeline-dot-info { background: #3b82f6; box-shadow: 0 0 0 3px #3b82f6; }
+    .timeline-dot-purple { background: #8b5cf6; box-shadow: 0 0 0 3px #8b5cf6; }
+    .timeline-dot-danger { background: #ef4444; box-shadow: 0 0 0 3px #ef4444; }
+
+    /* Blockchain hash styling */
+    .blockchain-hash {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.875rem;
+        word-break: break-all;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .blockchain-hash:hover {
+        transform: translateX(4px);
+    }
+
+    /* Filter tab active state */
+    .filter-tab-active {
+        background-color: #3b82f6 !important;
+        color: white !important;
+        border-color: #3b82f6 !important;
+    }
+
+    /* Staggered animation delays */
+    .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+    .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+    .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+    .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+    .timeline-item:nth-child(5) { animation-delay: 0.5s; }
+
+    /* Print styles */
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        .timeline-item {
+            animation: none;
+            break-inside: avoid;
+        }
+    }
+
+    .history-card {
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        margin-bottom: 1.5rem;
+        transition: var(--transition);
+        overflow: hidden;
+        position: relative;
+        background: white;
+    }
+
+    .history-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--primary-color);
+        transition: var(--transition);
+    }
+
+    .history-card:hover {
+        box-shadow: var(--card-shadow-hover);
+        transform: translateY(-4px);
+    }
+
+    .history-card.registration::before { background: var(--success-color); }
+    .history-card.transfer::before { background: var(--warning-color); }
+    .history-card.survey::before { background: var(--info-color); }
+    .history-card.status::before { background: var(--secondary-color); }
+    .history-card.dispute::before { background: var(--danger-color); }
+    
+    .parcel-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+        box-shadow: var(--card-shadow-hover);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .parcel-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+    }
+
+    .parcel-header h1 {
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .parcel-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .parcel-info-item {
+        background: rgba(255,255,255,0.1);
+        padding: 1rem;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+
+    .parcel-info-item strong {
+        display: block;
+        font-size: 0.875rem;
+        opacity: 0.8;
+        margin-bottom: 0.25rem;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 3rem;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 1.5rem;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+        border-radius: 2px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 2rem;
+        animation: fadeInUp 0.6s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+    .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+    .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+    .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+    .timeline-item:nth-child(5) { animation-delay: 0.5s; }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -2.25rem;
+        top: 1.5rem;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        border: 4px solid var(--primary-color);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        z-index: 2;
+        transition: var(--transition);
+    }
+
+    .timeline-item:hover::before {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.2);
+    }
+    
+    .blockchain-hash {
+        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+        font-size: 0.8rem;
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        padding: 0.75rem;
+        border-radius: 8px;
+        word-break: break-all;
+        border: 1px solid #e2e8f0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .blockchain-hash::before {
+        content: '🔗';
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        font-size: 0.75rem;
+        opacity: 0.5;
+    }
+    
+    .ownership-chain {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--card-shadow);
+        border: 1px solid #e2e8f0;
+    }
+
+    .ownership-chain h5 {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .owner-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background: var(--light-bg);
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .owner-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--success-color);
+        transition: var(--transition);
+    }
+
+    .owner-item:hover {
+        transform: translateX(4px);
+        box-shadow: var(--card-shadow);
+    }
+    
+    .owner-item.current {
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+        border-color: var(--primary-color);
+    }
+
+    .owner-item.current::before {
+        background: var(--primary-color);
+        width: 6px;
+    }
+
+    .status-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-current {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+    }
+
+    .card-title {
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.75rem;
+    }
+
+    .text-success i { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+    .text-warning i { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+    .text-info i { background: rgba(6, 182, 212, 0.1); color: var(--info-color); }
+    .text-purple i { background: rgba(124, 58, 237, 0.1); color: var(--secondary-color); }
+    .text-danger i { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+
+    .btn-outline-secondary {
+        border-color: #e2e8f0;
+        color: #64748b;
+        transition: var(--transition);
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .print-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        box-shadow: var(--card-shadow-hover);
+        transition: var(--transition);
+    }
+
+    .print-btn:hover {
+        transform: scale(1.1) translateY(-2px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-tab {
+        padding: 0.5rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 25px;
+        background: white;
+        color: #64748b;
+        cursor: pointer;
+        transition: var(--transition);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .filter-tab:hover, .filter-tab.active {
+        border-color: var(--primary-color);
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        text-align: center;
+        transition: var(--transition);
+        border: 1px solid #e2e8f0;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        display: block;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .parcel-header {
+            padding: 2rem 1rem;
+        }
+        
+        .parcel-header h1 {
+            font-size: 1.75rem;
+        }
+        
+        .timeline {
+            padding-left: 2rem;
+        }
+        
+        .timeline::before {
+            left: 1rem;
+        }
+        
+        .timeline-item::before {
+            left: -1.75rem;
+        }
+
+        .print-btn {
+            bottom: 1rem;
+            right: 1rem;
+            width: 50px;
+            height: 50px;
+        }
+    }
+    
+    @media print {
+        .print-btn, .navbar, .sidebar, .filter-tabs { display: none !important; }
+        .main-content { margin: 0 !important; padding: 0 !important; }
+        .history-card { break-inside: avoid; }
+        .parcel-header { background: #4f46e5 !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-7xl mx-auto">
+    <!-- Parcel Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl p-8 mb-8 relative overflow-hidden animate-fade-in-up">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full transform translate-x-8 -translate-y-8"></div>
+        <div class="relative z-10">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="mb-6 lg:mb-0">
+                    <h1 class="text-3xl font-bold mb-2 flex items-center gap-3">
+                        <i class="fas fa-map-marked-alt"></i>
+                        Parcel #{{ parcel.id }} - Complete History
+                    </h1>
+                    <p class="text-blue-100 text-lg">Comprehensive transaction history and ownership details</p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{% url 'land_registry:parcel_mother_patta' parcel.id %}" 
+                       class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2">
+                        <i class="fas fa-file-alt"></i> Decentralized Documnet
+                    </a>
+                    <button onclick="window.print()" 
+                            class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 no-print">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Parcel Info Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+                    <div class="text-sm text-blue-100">Survey Number</div>
+                    <div class="text-lg font-semibold">{{ parcel.survey_number|default:"Not specified" }}</div>
+                </div>
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+                    <div class="text-sm text-blue-100">Area</div>
+                    <div class="text-lg font-semibold">{{ parcel.area }} {{ parcel.area_unit }}</div>
+                </div>
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+                    <div class="text-sm text-blue-100">Current Owner</div>
+                    <div class="text-lg font-semibold">{{ parcel.owner.get_full_name }}</div>
+                </div>
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+                    <div class="text-sm text-blue-100">Village</div>
+                    <div class="text-lg font-semibold">{{ parcel.village_name|default:"Not specified" }}</div>
+                </div>
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+                    <div class="text-sm text-blue-100">District</div>
+                    <div class="text-lg font-semibold">{{ parcel.district_name|default:"Not specified" }}</div>
+                </div>
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+                    <div class="text-sm text-blue-100">State</div>
+                    <div class="text-lg font-semibold">{{ parcel.state_name|default:"Not specified" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in-up">
+        <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center">
+            <div class="text-3xl font-bold text-blue-600 mb-2">{{ complete_history.history_entries|length }}</div>
+            <div class="text-gray-600 text-sm font-medium">Total Transactions</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ complete_history.ownership_chain|length }}</div>
+            <div class="text-gray-600 text-sm font-medium">Total Owners</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center">
+            <div class="text-3xl font-bold text-purple-600 mb-2">
+                {% with complete_history.history_entries as entries %}
+                    {{ entries|length|add:0 }}
+                {% endwith %}
+            </div>
+            <div class="text-gray-600 text-sm font-medium">Years Active</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center">
+            <div class="text-3xl font-bold text-indigo-600 mb-2">{{ parcel.area }}</div>
+            <div class="text-gray-600 text-sm font-medium">{{ parcel.area_unit }}</div>
+        </div>
+    </div>
+
+    <!-- Original Registration Details -->
+    {% if parcel.original_owner %}
+    <div class="bg-white rounded-xl shadow-lg mb-8 overflow-hidden animate-fade-in-up">
+        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6">
+            <h3 class="text-xl font-bold flex items-center gap-3">
+                <i class="fas fa-certificate"></i> Original Registration Details
+            </h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-medium text-gray-700">Original Owner:</span>
+                        <span class="text-gray-900">{{ parcel.original_owner }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-medium text-gray-700">Registration Date:</span>
+                        <span class="text-gray-900">{{ parcel.original_registration_date|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-medium text-gray-700">Registrar:</span>
+                        <span class="text-gray-900">{{ parcel.original_registrar|default:"Not specified" }}</span>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-medium text-gray-700">Original Area:</span>
+                        <span class="text-gray-900">{{ parcel.original_area|default:"Not specified" }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-medium text-gray-700">Document Reference:</span>
+                        <span class="text-gray-900">{{ parcel.document_reference|default:"Not specified" }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-medium text-gray-700">Original Coordinates:</span>
+                        <span class="text-gray-900">{{ parcel.original_coordinates|default:"Not specified" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ownership Chain -->
+    <div class="bg-white rounded-xl shadow-lg mb-8 overflow-hidden animate-fade-in-up">
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6">
+            <h3 class="text-xl font-bold flex items-center gap-3">
+                <i class="fas fa-users"></i> Ownership Chain
+            </h3>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                {% for owner_info in complete_history.ownership_chain %}
+                <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors animate-fade-in-left" 
+                     style="animation-delay: {{ forloop.counter0|floatformat:1 }}s">
+                    <div class="flex-shrink-0 w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
+                        {{ forloop.counter }}
+                    </div>
+                    <div class="flex-grow">
+                        <h5 class="font-semibold text-gray-900 mb-1">{{ owner_info.owner_name }}</h5>
+                        <p class="text-sm text-gray-600">
+                            {% if owner_info.from_date %}
+                                From: {{ owner_info.from_date|date:"F d, Y" }}
+                            {% endif %}
+                            {% if owner_info.to_date %}
+                                | To: {{ owner_info.to_date|date:"F d, Y" }}
+                            {% else %}
+                                | <span class="text-green-600 font-medium">Current Owner</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if forloop.last %}
+                    <div class="flex-shrink-0">
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Active</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-users fa-3x mb-4 text-gray-300"></i>
+                    <p>No ownership history available.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Transaction History -->
+    <div class="bg-white rounded-xl shadow-lg mb-8 overflow-hidden animate-fade-in-up">
+        <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6">
+            <h3 class="text-xl font-bold flex items-center gap-3">
+                <i class="fas fa-history"></i> Complete Transaction History
+            </h3>
+        </div>
+        
+        <!-- Filter Tabs -->
+        <div class="border-b border-gray-200 bg-gray-50">
+            <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                <button class="filter-tab active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none transition-colors" 
+                        data-filter="all">
+                    All Transactions
+                </button>
+                <button class="filter-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none transition-colors" 
+                        data-filter="registration">
+                    Registration
+                </button>
+                <button class="filter-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none transition-colors" 
+                        data-filter="transfer">
+                    Transfers
+                </button>
+                <button class="filter-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none transition-colors" 
+                        data-filter="survey">
+                    Surveys
+                </button>
+                <button class="filter-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none transition-colors" 
+                        data-filter="status">
+                    Status Changes
+                </button>
+                <button class="filter-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none transition-colors" 
+                        data-filter="dispute">
+                    Disputes
+                </button>
+            </nav>
+        </div>
+
+        <div class="p-6">
+            {% if complete_history.history_entries %}
+            <div class="space-y-6">
+                {% for entry in complete_history.history_entries %}
+                <div class="timeline-item border-l-4 border-blue-200 pl-6 pb-6 relative animate-fade-in-up" 
+                     data-type="{{ entry.change_type }}" 
+                     style="animation-delay: {{ forloop.counter0|floatformat:1 }}s">
+                    
+                    <!-- Timeline dot -->
+                    <div class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow"></div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3">
+                            <div class="flex items-center gap-3 mb-2 sm:mb-0">
+                                {% if entry.change_type == 'registration' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-plus-circle mr-1"></i> Initial Registration
+                                    </span>
+                                {% elif entry.change_type == 'transfer' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-exchange-alt mr-1"></i> Ownership Transfer
+                                    </span>
+                                {% elif entry.change_type == 'survey_update' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        <i class="fas fa-map mr-1"></i> Survey Update
+                                    </span>
+                                {% elif entry.change_type == 'status_change' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        <i class="fas fa-flag mr-1"></i> Status Change
+                                    </span>
+                                {% elif entry.change_type == 'dispute_filed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i> Dispute Filed
+                                    </span>
+                                {% elif entry.change_type == 'dispute_resolved' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i> Dispute Resolved
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        <i class="fas fa-info-circle mr-1"></i> {{ entry.get_change_type_display }}
+                                    </span>
+                                {% endif %}
+                                <span class="text-sm text-gray-600">{{ entry.timestamp|date:"M d, Y H:i" }}</span>
+                            </div>
+                            {% if entry.changed_by %}
+                            <span class="text-sm text-gray-500">By: {{ entry.changed_by.get_full_name }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="space-y-3">
+                            {% if entry.notes %}
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Notes:</span>
+                                <p class="text-gray-900 mt-1">{{ entry.notes }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if entry.blockchain_tx_hash %}
+                            <div class="mt-3 p-3 bg-gray-100 rounded">
+                                <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                                    <i class="fas fa-link text-blue-500"></i>
+                                    <span class="font-medium">Blockchain Transaction:</span>
+                                </div>
+                                <code class="block bg-white p-2 rounded border text-xs font-mono cursor-pointer hover:bg-gray-50 transition-colors" 
+                                      onclick="copyToClipboard('{{ entry.blockchain_tx_hash }}')"
+                                      title="Click to copy">{{ entry.blockchain_tx_hash }}</code>
+                            </div>
+                            {% endif %}
+                            
+                            {% if entry.previous_data or entry.new_data %}
+                            <div class="mt-3">
+                                <button class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
+                                        type="button" 
+                                        onclick="toggleDetails('details-{{ forloop.counter }}')">
+                                    <i class="fas fa-eye mr-2"></i> View Details
+                                </button>
+                                <div class="hidden mt-3 space-y-3" id="details-{{ forloop.counter }}">
+                                    {% if entry.previous_data %}
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-700">Previous Data:</span>
+                                        <div class="mt-1 bg-red-50 p-3 rounded border text-sm font-mono">
+                                            <pre>{{ entry.previous_data|pprint }}</pre>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% if entry.new_data %}
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-700">New Data:</span>
+                                        <div class="mt-1 bg-green-50 p-3 rounded border text-sm font-mono">
+                                            <pre>{{ entry.new_data|pprint }}</pre>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-gray-500 py-12">
+                <i class="fas fa-history fa-4x mb-4 text-gray-300"></i>
+                <h4 class="text-lg font-medium mb-2">No Transaction History</h4>
+                <p>No transaction history is available for this parcel.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add Note Section (for registrars) -->
+    {% if can_edit %}
+    <div class="bg-white rounded-xl shadow-lg mb-8 overflow-hidden animate-fade-in-up">
+        <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6">
+            <h3 class="text-xl font-bold flex items-center gap-3">
+                <i class="fas fa-sticky-note"></i> Add Administrative Note
+            </h3>
+        </div>
+        <div class="p-6">
+            <form id="addNoteForm" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label for="note-text" class="block text-sm font-medium text-gray-700 mb-2">Administrative Note</label>
+                    <textarea id="note-text" 
+                              name="note_text" 
+                              rows="4" 
+                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                              placeholder="Enter administrative note..." 
+                              required></textarea>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        This note will be added to the parcel's history.
+                    </div>
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add Note
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Print Button -->
+<button onclick="window.print()" 
+        class="fixed bottom-6 right-6 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 no-print z-50">
+    <i class="fas fa-print text-lg"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    const timelineItems = document.querySelectorAll('.timeline-item');
+    
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const filter = this.dataset.filter;
+            
+            // Update active tab
+            filterTabs.forEach(t => {
+                t.classList.remove('active', 'border-indigo-500', 'text-indigo-600');
+                t.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            });
+            this.classList.add('active', 'border-indigo-500', 'text-indigo-600');
+            this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            
+            // Filter timeline items
+            timelineItems.forEach(item => {
+                if (filter === 'all' || item.dataset.type === filter || 
+                    (filter === 'dispute' && (item.dataset.type === 'dispute_filed' || item.dataset.type === 'dispute_resolved'))) {
+                    item.style.display = 'block';
+                    item.classList.add('animate-fade-in-up');
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Update statistics
+            updateFilterStats(filter);
+        });
+    });
+    
+    // Update statistics based on filter
+    function updateFilterStats(filter) {
+        const visibleItems = document.querySelectorAll('.timeline-item[style*="block"]').length;
+        const firstStatNumber = document.querySelector('.stat-card .stat-number');
+        const firstStatLabel = document.querySelector('.stat-card .stat-label');
+        
+        if (firstStatNumber) {
+            firstStatNumber.textContent = visibleItems;
+        }
+        if (firstStatLabel) {
+            firstStatLabel.textContent = filter === 'all' ? 'Total Transactions' : 
+                filter.charAt(0).toUpperCase() + filter.slice(1) + ' Transactions';
+        }
+    }
+    
+    // Copy to clipboard functionality
+    window.copyToClipboard = function(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            // Show success message
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300';
+            toast.innerHTML = '<i class="fas fa-check mr-2"></i>Copied to clipboard!';
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }).catch(function(err) {
+            console.error('Could not copy text: ', err);
+        });
+    };
+    
+    // Toggle details functionality
+    window.toggleDetails = function(detailsId) {
+        const details = document.getElementById(detailsId);
+        const button = event.target.closest('button');
+        const icon = button.querySelector('i');
+        
+        if (details.classList.contains('hidden')) {
+            details.classList.remove('hidden');
+            details.classList.add('animate-fade-in-up');
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+            const span = button.querySelector('span');
+            if (span) span.textContent = ' Hide Details';
+        } else {
+            details.classList.add('hidden');
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+            const span = button.querySelector('span');
+            if (span) span.textContent = ' View Details';
+        }
+    };
+    
+    // Animate statistics on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-fade-in-up');
+                // Animate stat numbers
+                const statNumbers = entry.target.querySelectorAll('.stat-number');
+                statNumbers.forEach(stat => {
+                    const finalValue = parseInt(stat.textContent);
+                    animateValue(stat, 0, finalValue, 1000);
+                });
+            }
+        });
+    }, observerOptions);
+    
+    // Observe stats grid and other animated elements
+    const statsGrid = document.querySelector('.stats-grid');
+    if (statsGrid) {
+        observer.observe(statsGrid);
+    }
+    
+    function animateValue(element, start, end, duration) {
+        const startTimestamp = performance.now();
+        const step = (timestamp) => {
+            const elapsed = timestamp - startTimestamp;
+            const progress = Math.min(elapsed / duration, 1);
+            const current = Math.floor(progress * (end - start) + start);
+            element.textContent = current;
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            }
+        };
+        requestAnimationFrame(step);
+    }
+    
+    // Add Note Form Submission
+    const addNoteForm = document.getElementById('addNoteForm');
+    if (addNoteForm) {
+        addNoteForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            
+            // Show loading state
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
+            submitButton.disabled = true;
+            
+            fetch(`{% url 'land_registry:add_parcel_note' parcel.id %}`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                    toast.innerHTML = '<i class="fas fa-check mr-2"></i>Note added successfully!';
+                    document.body.appendChild(toast);
+                    
+                    // Clear form
+                    this.reset();
+                    
+                    // Reload page after short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || 'Failed to add note');
+                }
+            })
+            .catch(error => {
+                // Show error message
+                const toast = document.createElement('div');
+                toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                toast.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Error: ' + error.message;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => toast.remove(), 5000);
+            })
+            .finally(() => {
+                // Reset button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            });
+        });
+    }
+    
+    // Enhanced print functionality
+    window.addEventListener('beforeprint', function() {
+        // Show all timeline items for printing
+        timelineItems.forEach(item => {
+            item.style.display = 'block';
+        });
+    });
+
+    window.addEventListener('afterprint', function() {
+        // Restore filter state after printing
+        const activeTab = document.querySelector('.filter-tab.active');
+        if (activeTab && activeTab.dataset.filter !== 'all') {
+            activeTab.click();
+        }
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'p':
+                    e.preventDefault();
+                    window.print();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    const searchInput = document.querySelector('input[type="search"]');
+                    if (searchInput) searchInput.focus();
+                    break;
+            }
+        }
+        
+        // Alt + arrow keys for filter navigation
+        if (e.altKey) {
+            const filterTabs = Array.from(document.querySelectorAll('.filter-tab'));
+            const currentIndex = filterTabs.findIndex(tab => tab.classList.contains('active'));
+            
+            if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                filterTabs[currentIndex - 1].click();
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight' && currentIndex < filterTabs.length - 1) {
+                filterTabs[currentIndex + 1].click();
+                e.preventDefault();
+            }
+        }
+    });
+    
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

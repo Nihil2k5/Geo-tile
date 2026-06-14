@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - GeoLedger{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Section -->
+        <div class="glass-effect rounded-2xl shadow-xl p-8 mb-8 hover-scale">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Welcome, {{ request.user.get_full_name }}</h1>
+                    <p class="mt-2 text-gray-400">{{ request.user.get_role_display }} Dashboard</p>
+                </div>
+                <div class="w-16 h-16">
+                    <svg class="w-full h-full text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Properties -->
+            <div class="glass-effect rounded-xl shadow-lg p-6 hover-scale">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full gradient-bg">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-400">Total Properties</p>
+                        <p class="text-2xl font-semibold text-white">156</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Transactions -->
+            <div class="glass-effect rounded-xl shadow-lg p-6 hover-scale">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full gradient-bg">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-400">Pending Transactions</p>
+                        <p class="text-2xl font-semibold text-white">23</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Transactions -->
+            <div class="glass-effect rounded-xl shadow-lg p-6 hover-scale">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full gradient-bg">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-400">Completed Transactions</p>
+                        <p class="text-2xl font-semibold text-white">89</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Value -->
+            <div class="glass-effect rounded-xl shadow-lg p-6 hover-scale">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full gradient-bg">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-400">Total Value</p>
+                        <p class="text-2xl font-semibold text-white">$2.4M</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="glass-effect rounded-2xl shadow-xl p-8 mb-8 hover-scale">
+            <h2 class="text-2xl font-bold text-white mb-6">Recent Activity</h2>
+            <div class="space-y-6">
+                <!-- Activity Item -->
+                <div class="flex items-center p-4 rounded-xl bg-gray-800 bg-opacity-50">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-white">Property Transfer Request</p>
+                        <p class="text-xs text-gray-400">Property ID: #12345 - Status: Pending Approval</p>
+                    </div>
+                    <div class="ml-auto">
+                        <span class="px-3 py-1 text-xs rounded-full gradient-bg text-white">New</span>
+                    </div>
+                </div>
+
+                <!-- Activity Item -->
+                <div class="flex items-center p-4 rounded-xl bg-gray-800 bg-opacity-50">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-white">Document Verification Complete</p>
+                        <p class="text-xs text-gray-400">Property ID: #12344 - Status: Verified</p>
+                    </div>
+                    <div class="ml-auto">
+                        <span class="px-3 py-1 text-xs rounded-full bg-green-500 bg-opacity-20 text-green-400">Completed</span>
+                    </div>
+                </div>
+
+                <!-- Activity Item -->
+                <div class="flex items-center p-4 rounded-xl bg-gray-800 bg-opacity-50">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-white">Property Inspection Scheduled</p>
+                        <p class="text-xs text-gray-400">Property ID: #12343 - Date: Tomorrow</p>
+                    </div>
+                    <div class="ml-auto">
+                        <span class="px-3 py-1 text-xs rounded-full bg-yellow-500 bg-opacity-20 text-yellow-400">Pending</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Action Card -->
+            <div class="glass-effect rounded-xl shadow-lg p-6 hover-scale">
+                <h3 class="text-lg font-semibold text-white mb-4">Register New Property</h3>
+                <p class="text-gray-400 mb-4">Add a new property to the blockchain registry</p>
+                <button class="w-full py-2 px-4 rounded-xl gradient-bg text-white hover:opacity-90 transition duration-150 ease-in-out">
+                    Start Registration
+                </button>
+            </div>
+
+            <!-- Action Card -->
+            <div class="glass-effect rounded-xl shadow-lg p-6 hover-scale">
+                <h3 class="text-lg font-semibold text-white mb-4">Transfer Property</h3>
+                <p class="text-gray-400 mb-4">Initiate a property transfer request</p>
+                <button class="w-full py-2 px-4 rounded-xl gradient-bg text-white hover:opacity-90 transition duration-150 ease-in-out">
+                    Start Transfer
+                </button>
+            </div>
+
+            <!-- Action Card -->
+            <div class="glass-effect rounded-xl shadow-lg p-6 hover-scale">
+                <h3 class="text-lg font-semibold text-white mb-4">View Documents</h3>
+                <p class="text-gray-400 mb-4">Access and manage property documents</p>
+                <button class="w-full py-2 px-4 rounded-xl gradient-bg text-white hover:opacity-90 transition duration-150 ease-in-out">
+                    View Documents
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

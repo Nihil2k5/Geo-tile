@@ -1,0 +1,687 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}My Properties{% endblock %}
+
+{% block extra_head %}
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        /* Custom styles for properties with default coordinates */
+        .has-default-coordinates {
+            background-color: #FEF3C7 !important; /* Light yellow background */
+            border: 1px solid #F59E0B !important; /* Amber border */
+        }
+        .has-default-coordinates:hover {
+            background-color: #FDE68A !important; /* Slightly darker on hover */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">My Properties</h1>
+    
+    <!-- Map Container -->
+    <div id="map" class="w-full h-96 mb-8 rounded-lg shadow-lg"></div>
+    
+    <!-- Properties Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for property in properties %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold mb-4">Property #{{ property.id }}</h2>
+                <div class="space-y-2">
+                    <p><span class="font-medium">Location:</span> {{ property.location }}</p>
+                    <p><span class="font-medium">Area:</span> {{ property.area }} sq. meters</p>
+                    <p><span class="font-medium">Status:</span> {{ property.status }}</p>
+                    <p><span class="font-medium">Description:</span> {{ property.description }}</p>
+                </div>
+                <div class="mt-4 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <button 
+                            class="view-on-map-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                            data-property-id="{{ property.id }}"
+                            data-coordinates="{{ property.coordinates_json|safe }}"
+                        >
+                            View on Map
+                        </button>
+                        <a href="{% url 'land_registry:parcel_complete_history' property.id %}" class="text-blue-500 hover:text-blue-600">View History</a>
+                    </div>
+                    <div class="flex justify-between items-center pt-2">
+                        <a href="{% url 'land_registry:parcel_mother_patta' property.id %}" 
+                           class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-center flex-1 mr-2">
+                            Decentralized Documnet
+                        </a>
+                        <button 
+                            class="transfer-property-btn bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex-1"
+                            data-property-id="{{ property.id }}"
+                        >
+                            Transfer Property
+                        </button>
+                    </div>
+                    {% if property.qr_code %}
+                    <div class="mt-4 text-center">
+                        <p class="text-sm font-medium mb-2">Property QR Code</p>
+                        <img src="{{ property.qr_code.url }}" alt="Property QR Code" class="mx-auto h-32 w-32">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Transfer Modal -->
+<div id="transferModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full" style="z-index: 1000;">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Transfer Property</h3>
+            <form id="transferForm" method="POST" action="{% url 'land_registry:transfer_property' %}">
+                {% csrf_token %}
+                <input type="hidden" id="propertyId" name="property_id" value="">
+                <div class="mb-4">
+                    <label for="recipientAddress" class="block text-sm font-medium text-gray-700">Recipient's Wallet Address</label>
+                    <input type="text" id="recipientAddress" name="recipient_address" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           required>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeTransferModal()" 
+                            class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Confirm Transfer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    console.log('Starting map initialization...');
+    
+    // Global variables
+    const propertyFeatures = new Map();
+    let propertyMap = null;
+    let mapLoaded = false;
+    
+    // Initialize map when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const mapboxToken = '{{ mapbox_token }}';
+        console.log('Using Mapbox token:', mapboxToken ? 'Token present' : 'No token');
+        
+        if (!mapboxToken) {
+            console.error('Mapbox token is missing!');
+            document.getElementById('map').innerHTML = '<div class="flex items-center justify-center h-full bg-gray-100 p-4 rounded"><p class="text-red-500">Map could not be loaded. Please check your internet connection.</p></div>';
+            return;
+        }
+        
+        try {
+            // Set the access token
+            mapboxgl.accessToken = mapboxToken;
+            
+            // Initialize the map with error handling
+            try {
+                propertyMap = new mapboxgl.Map({
+                    container: 'map',
+                    style: 'mapbox://styles/mapbox/streets-v11',
+                    center: [30.0619, -1.9403], // Rwanda center coordinates
+                    zoom: 8
+                });
+            } catch (mapError) {
+                console.error('Error initializing map:', mapError);
+                document.getElementById('map').innerHTML = '<div class="flex items-center justify-center h-full bg-gray-100 p-4 rounded"><p class="text-red-500">Map could not be loaded. Please check your internet connection.</p></div>';
+                return;
+            }
+            
+            // Add navigation controls
+            propertyMap.addControl(new mapboxgl.NavigationControl());
+            
+            // Wait for map to load before processing properties
+            propertyMap.on('load', function() {
+                console.log('Map loaded successfully!');
+                mapLoaded = true;
+                
+                // Add a source for property features
+                propertyMap.addSource('properties', {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'FeatureCollection',
+                        'features': []
+                    }
+                });
+                
+                // Add a layer for property fill
+                propertyMap.addLayer({
+                    'id': 'property-fill',
+                    'type': 'fill',
+                    'source': 'properties',
+                    'paint': {
+                        'fill-color': '#0080ff',
+                        'fill-opacity': 0.5
+                    }
+                });
+                
+                // Add a layer for property outline
+                propertyMap.addLayer({
+                    'id': 'property-line',
+                    'type': 'line',
+                    'source': 'properties',
+                    'paint': {
+                        'line-color': '#000',
+                        'line-width': 1
+                    }
+                });
+                
+                // Load property features
+                loadPropertyFeatures();
+            });
+            
+            propertyMap.on('error', function(e) {
+                console.error('Mapbox error:', e);
+                document.getElementById('map').innerHTML = '<div class="flex items-center justify-center h-full bg-gray-100 p-4 rounded"><p class="text-red-500">Map could not be loaded. Please check your internet connection.</p></div>';
+            });
+            
+            // Function to load property features
+            function loadPropertyFeatures() {
+                try {
+                    // Process all property buttons
+                    let totalProperties = 0;
+                    let propertiesWithCoordinates = 0;
+                    let propertiesWithDefaultCoordinates = 0;
+                    
+                    document.querySelectorAll('.view-on-map-btn').forEach(button => {
+                        try {
+                            totalProperties++;
+                            const propertyId = button.dataset.propertyId;
+                            let coordinatesStr = button.dataset.coordinates;
+                            
+                            // Try to parse the coordinates if they're a JSON string
+                            try {
+                                if (typeof coordinatesStr === 'string' && coordinatesStr.trim().startsWith('{')) {
+                                    coordinatesStr = JSON.parse(coordinatesStr);
+                                }
+                            } catch (e) {
+                                // Continue with string version if parsing fails
+                            }
+                            
+                            console.log(`=== Property ${propertyId} ===`);
+                            console.log('Coordinates string:', coordinatesStr);
+                            
+                            // Check for properties with missing or default coordinates
+                            if (!coordinatesStr || coordinatesStr === "None" || coordinatesStr === "null" || coordinatesStr === "undefined") {
+                                console.warn(`Invalid coordinates value "${coordinatesStr}" for property ${propertyId} - creating placeholder`);
+                                
+                                // Create a placeholder feature for this property
+                                const placeholderFeature = {
+                                    type: "Feature",
+                                    properties: {
+                                        id: propertyId,
+                                        placeholder: true,
+                                        title: `Property #${propertyId} (No coordinates)`
+                                    },
+                                    geometry: null
+                                };
+                                
+                                // Store the placeholder in our map
+                                propertyFeatures.set(propertyId, placeholderFeature);
+                                console.log(`Added placeholder for property ${propertyId}`);
+                                return;
+                            }
+                            
+                            // Check if this is a JSON object (not a string)
+                            if (typeof coordinatesStr === 'object') {
+                                try {
+                                    // It's already an object, use it directly
+                                    feature = coordinatesStr;
+                                    
+                                    // Check if it has default coordinates
+                                    if (feature.properties && feature.properties.has_default_coordinates) {
+                                        console.log(`Property ${propertyId} has default coordinates`);
+                                        propertiesWithDefaultCoordinates++;
+                                        // Mark the button to show it has default coordinates
+                                        button.classList.add('has-default-coordinates');
+                                        button.setAttribute('title', 'This property uses default coordinates');
+                                    }
+                                    
+                                    propertiesWithCoordinates++;
+                                    
+                                    // Add the property ID to the feature properties if not already there
+                                    if (!feature.properties) {
+                                        feature.properties = {};
+                                    }
+                                    feature.properties.id = propertyId;
+                                    
+                                    // Store the feature in our map
+                                    propertyFeatures.set(propertyId, feature);
+                                    return;
+                                } catch (objError) {
+                                    console.error(`Failed to process object coordinates for property ${propertyId}:`, objError);
+                                }
+                            }
+                            
+                            // Parse the coordinates
+                            let feature;
+                            try {
+                                // Check if the coordinates string is severely malformed
+                                if (coordinatesStr.trim() === '' || 
+                                    coordinatesStr.trim() === '{' || 
+                                    coordinatesStr.trim().length < 5) {
+                                    // String is too short or incomplete
+                                    console.warn(`Severely malformed coordinates for property ${propertyId}: "${coordinatesStr}" - creating placeholder`);
+                                    
+                                    // Create a placeholder for severely malformed data instead of throwing error
+                                    const placeholderFeature = {
+                                        type: "Feature",
+                                        properties: {
+                                            id: propertyId,
+                                            placeholder: true,
+                                            title: `Property #${propertyId} (Corrupted data)`,
+                                            error: 'Severely malformed coordinates data'
+                                        },
+                                        geometry: null
+                                    };
+                                    propertyFeatures.set(propertyId, placeholderFeature);
+                                    return;
+                                }
+                                
+                                // Check if this is a coordinate array (starts with [)
+                                if (coordinatesStr.trim().startsWith('[')) {
+                                    // This is a coordinate array, create a GeoJSON feature
+                                    const coordinates = JSON.parse(coordinatesStr);
+                                    feature = {
+                                        type: "Feature",
+                                        properties: {
+                                            id: propertyId
+                                        },
+                                        geometry: {
+                                            type: "Polygon",
+                                            coordinates: coordinates
+                                        }
+                                    };
+                                    console.log(`Successfully parsed coordinate array for property ${propertyId}`);
+                                } else if (coordinatesStr.trim().startsWith('{')) {
+                                    // This might be a full GeoJSON feature, try to parse it
+                                    feature = JSON.parse(coordinatesStr);
+                                } else {
+                                    throw new Error(`Unrecognized coordinate format: ${coordinatesStr.substring(0, 50)}...`);
+                                }
+                                
+                                propertiesWithCoordinates++;
+                                
+                                // Add the property ID to the feature properties
+                                if (!feature.properties) {
+                                    feature.properties = {};
+                                }
+                                feature.properties.id = propertyId;
+                                
+                            } catch (parseError) {
+                                console.error(`Failed to parse coordinates for property ${propertyId}:`, parseError);
+                                // Create a placeholder for properties with parsing errors
+                                const placeholderFeature = {
+                                    type: "Feature",
+                                    properties: {
+                                        id: propertyId,
+                                        placeholder: true,
+                                        title: `Property #${propertyId} (Invalid coordinates)`,
+                                        error: parseError.message
+                                    },
+                                    geometry: null
+                                };
+                                propertyFeatures.set(propertyId, placeholderFeature);
+                                return;
+                            }
+                            
+                            // Validate GeoJSON structure
+                            if (!feature.geometry || !feature.geometry.coordinates) {
+                                console.error(`Invalid GeoJSON structure for property ${propertyId}`);
+                                // Create a placeholder for properties with invalid structure
+                                const placeholderFeature = {
+                                    type: "Feature",
+                                    properties: {
+                                        id: propertyId,
+                                        placeholder: true,
+                                        title: `Property #${propertyId} (Invalid structure)`
+                                    },
+                                    geometry: null
+                                };
+                                propertyFeatures.set(propertyId, placeholderFeature);
+                                return;
+                            }
+                            
+                            propertyFeatures.set(propertyId, feature);
+                            
+                            // Add feature to the source
+                            const source = propertyMap.getSource('properties');
+                            if (source) {
+                                const currentData = source._data;
+                                currentData.features.push(feature);
+                                source.setData(currentData);
+                            }
+                            
+                            console.log(`Successfully added property ${propertyId} to map`);
+                        } catch (error) {
+                            console.error(`Error processing property ${button.dataset.propertyId}:`, error);
+                        }
+                    });
+                    
+                    console.log(`Total properties loaded: ${propertyFeatures.size}`);
+                    console.log(`Properties with valid coordinates: ${propertiesWithCoordinates}`);
+                    
+                    // Display notification about properties with default coordinates
+                    if (propertiesWithDefaultCoordinates > 0) {
+                        const notification = document.createElement('div');
+                        notification.className = 'fixed bottom-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded shadow-md';
+                        notification.innerHTML = `
+                            <div class="flex">
+                                <div class="py-1"><svg class="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM9 11V9h2v6H9v-4zm0-6h2v2H9V5z"/></svg></div>
+                                <div>
+                                    <p class="font-bold">${propertiesWithDefaultCoordinates} ${propertiesWithDefaultCoordinates === 1 ? 'property has' : 'properties have'} default location data</p>
+                                    <p class="text-sm">These properties are shown at a default location in Rwanda. Please update with actual coordinates.</p>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(notification);
+                        
+                        // Add a close button
+                        const closeButton = document.createElement('button');
+                        closeButton.className = 'absolute top-0 right-0 mt-2 mr-2 text-yellow-700';
+                        closeButton.innerHTML = '&times;';
+                        closeButton.onclick = function() {
+                            notification.remove();
+                        };
+                        notification.appendChild(closeButton);
+                        
+                        // Auto-hide after 10 seconds
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 10000);
+                    }
+                    
+                    // Center map on Rwanda if no properties were loaded
+                    if (propertyFeatures.size === 0) {
+                        propertyMap.flyTo({
+                            center: [30.0619, -1.9403], // Rwanda center
+                            zoom: 8
+                        });
+                    } else {
+                        // Count real features (non-placeholders)
+                        const realFeatures = Array.from(propertyFeatures.values()).filter(f => f.geometry !== null);
+                        
+                        if (realFeatures.length === 0) {
+                            // If we only have placeholders, center on Rwanda
+                            propertyMap.flyTo({
+                                center: [30.0619, -1.9403], // Rwanda center
+                                zoom: 8
+                            });
+                        } else {
+                            // Fit map to show all real properties
+                            const bounds = new mapboxgl.LngLatBounds();
+                            
+                            realFeatures.forEach(feature => {
+                                if (feature.geometry.type === 'Polygon') {
+                                    feature.geometry.coordinates[0].forEach(coord => {
+                                        bounds.extend(coord);
+                                    });
+                                } else if (feature.geometry.type === 'Point') {
+                                    bounds.extend(feature.geometry.coordinates);
+                                }
+                            });
+                            
+                            if (!bounds.isEmpty()) {
+                                propertyMap.fitBounds(bounds, {
+                                    padding: 50,
+                                    maxZoom: 15
+                                });
+                            }
+                        }
+                    }
+                    
+                    // Add visual feedback if no real properties were loaded
+                    const realFeatureCount = Array.from(propertyFeatures.values()).filter(f => f.geometry !== null).length;
+                    if (realFeatureCount === 0) {
+                        const mapContainer = document.getElementById('map');
+                        const noPropertiesMessage = document.createElement('div');
+                        noPropertiesMessage.className = 'absolute top-2 left-2 right-2 bg-white p-3 rounded shadow z-10 text-center';
+                        
+                        if (totalProperties === 0) {
+                            noPropertiesMessage.innerHTML = '<p class="text-amber-600">No properties found</p>';
+                        } else {
+                            noPropertiesMessage.innerHTML = `<p class="text-amber-600">None of your ${totalProperties} properties have location data available</p>`;
+                        }
+                        
+                        mapContainer.appendChild(noPropertiesMessage);
+                    }
+                } catch (error) {
+                    console.error('Error loading property features:', error);
+                    
+                    // Show error notification
+                    const mapContainer = document.getElementById('map');
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'absolute top-2 left-2 right-2 bg-white p-3 rounded shadow z-10 text-center';
+                    errorMessage.innerHTML = `<p class="text-red-600">Error loading property data: ${error.message}</p>`;
+                    mapContainer.appendChild(errorMessage);
+                }
+            }
+            
+            // Handle map errors
+            propertyMap.on('error', function(e) {
+                console.error('Map error:', e);
+            });
+            
+        } catch (error) {
+            console.error('Error initializing map:', error);
+        }
+        
+        // Set up click handlers for "View on Map" buttons
+        document.querySelectorAll('.view-on-map-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const propertyId = this.dataset.propertyId;
+                console.log(`View on Map clicked for property ${propertyId}`);
+                highlightProperty(propertyId);
+            });
+        });
+        
+        // Set up click handlers for "Transfer Property" buttons
+        document.querySelectorAll('.transfer-property-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const propertyId = this.dataset.propertyId;
+                openTransferModal(propertyId);
+            });
+        });
+    });
+
+    // Function to highlight a property on the map
+    function highlightProperty(propertyId) {
+        console.log(`Highlighting property ${propertyId}`);
+        
+        // Check if map is ready
+        if (!propertyMap) {
+            console.warn('Map not initialized');
+            return;
+        }
+        
+        // Check if property exists in features map
+        const feature = propertyFeatures.get(propertyId);
+        
+        if (!feature) {
+            console.warn(`Property ${propertyId} not found in features map`);
+            
+            // Show notification to user
+            const mapContainer = document.getElementById('map');
+            
+            // Remove any existing notifications
+            const existingNotification = document.getElementById('property-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.id = 'property-notification';
+            notification.className = 'absolute top-2 left-2 right-2 bg-white p-3 rounded shadow z-10 text-center';
+            notification.innerHTML = `<p class="text-amber-600">Property #${propertyId} has no location data available</p>`;
+            mapContainer.appendChild(notification);
+            
+            try {
+                // Center the map on Rwanda if property not found
+                propertyMap.flyTo({
+                    center: [30.0619, -1.9403], // Rwanda center
+                    zoom: 8,
+                    duration: 1500
+                });
+            } catch (error) {
+                console.error('Error centering map:', error);
+            }
+            
+            // Auto-hide notification after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+            
+            return;
+        }
+        
+        // Handle placeholder features (properties with no coordinates)
+        if (feature.properties && feature.properties.placeholder) {
+            console.log(`Property ${propertyId} is a placeholder (no coordinates available)`);
+            
+            // Show notification to user
+            const mapContainer = document.getElementById('map');
+            
+            // Remove any existing notifications
+            const existingNotification = document.getElementById('property-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.id = 'property-notification';
+            notification.className = 'absolute top-2 left-2 right-2 bg-white p-3 rounded shadow z-10 text-center';
+            notification.innerHTML = `<p class="text-amber-600">Property #${propertyId} has no location data available</p>`;
+            mapContainer.appendChild(notification);
+            
+            // Center map on Rwanda
+            propertyMap.flyTo({
+                center: [30.0619, -1.9403], // Rwanda center
+                zoom: 8,
+                duration: 1500
+            });
+            
+            // Auto-hide notification after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+            
+            return;
+        }
+        
+        try {
+            // Get coordinates for centering
+            if (!feature.geometry) {
+                throw new Error(`Property ${propertyId} has invalid geometry`);
+            }
+            
+            if (feature.geometry.type === 'Polygon') {
+                const coordinates = feature.geometry.coordinates[0];
+                
+                const bounds = coordinates.reduce((bounds, coord) => {
+                    return bounds.extend(coord);
+                }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+                
+                // Fly to the property with some padding
+                propertyMap.fitBounds(bounds, {
+                    padding: 80,
+                    maxZoom: 17,
+                    duration: 1500
+                });
+            } else if (feature.geometry.type === 'Point') {
+                // For point features, just center on the point
+                propertyMap.flyTo({
+                    center: feature.geometry.coordinates,
+                    zoom: 16,
+                    duration: 1500
+                });
+            } else {
+                console.warn(`Unsupported geometry type: ${feature.geometry.type}`);
+                return;
+            }
+            
+            // Update property styles to highlight the selected one
+            const source = propertyMap.getSource('properties');
+            if (source) {
+                const data = source._data;
+                data.features.forEach(f => {
+                    if (f.properties && f.properties.id === propertyId) {
+                        // Highlight selected property
+                        propertyMap.setPaintProperty('property-fill', 'fill-color', [
+                            'case',
+                            ['==', ['get', 'id'], propertyId],
+                            '#ff0000',  // Selected property color
+                            '#0080ff'   // Default color
+                        ]);
+                        
+                        propertyMap.setPaintProperty('property-line', 'line-width', [
+                            'case',
+                            ['==', ['get', 'id'], propertyId],
+                            3,  // Selected property line width
+                            1   // Default line width
+                        ]);
+                    }
+                });
+            }
+            
+            console.log(`Successfully highlighted property ${propertyId}`);
+            
+            // Scroll to map
+            document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+        } catch (error) {
+            console.error(`Error highlighting property ${propertyId}:`, error);
+            
+            // Fallback to Rwanda center if error occurs
+            propertyMap.flyTo({
+                center: [30.0619, -1.9403], // Rwanda center
+                zoom: 8,
+                duration: 1500
+            });
+            
+            alert('Error displaying property on map');
+        }
+    }
+
+    // Transfer Modal Functions
+    function openTransferModal(propertyId) {
+        console.log(`Opening transfer modal for property ${propertyId}`);
+        document.getElementById('propertyId').value = propertyId;
+        document.getElementById('transferModal').classList.remove('hidden');
+    }
+
+    function closeTransferModal() {
+        document.getElementById('transferModal').classList.add('hidden');
+        document.getElementById('transferForm').reset();
+    }
+    
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('transferModal');
+        if (event.target === modal) {
+            closeTransferModal();
+        }
+    });
+</script>
+{% endblock %}

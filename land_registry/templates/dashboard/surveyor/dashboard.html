@@ -1,0 +1,112 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Surveyor Dashboard - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block sidebar_menu %}
+<li>
+    <a href="{% url 'land_registry:surveyor_dashboard' %}" 
+       class="block px-4 py-2 text-gray-700 bg-gray-100">
+        Dashboard Overview
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:survey_list' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Survey List
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:survey_map' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Survey Map
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-2xl font-bold">Surveyor Dashboard</h2>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Total Surveys</h3>
+            <p class="text-3xl font-bold text-blue-600 mt-2">{{ total_surveys }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Pending Surveys</h3>
+            <p class="text-3xl font-bold text-yellow-600 mt-2">{{ pending_surveys }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Completed Surveys</h3>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ completed_surveys }}</p>
+        </div>
+    </div>
+
+    <!-- Recent Surveys -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Recent Surveys</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area (m²)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for survey in recent_surveys %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ survey.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ survey.owner.get_full_name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ survey.location }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ survey.area|floatformat:2 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if survey.status == 'surveyed' %}
+                                        bg-green-100 text-green-800
+                                    {% elif survey.status == 'pending_survey' %}
+                                        bg-yellow-100 text-yellow-800
+                                    {% else %}
+                                        bg-gray-100 text-gray-800
+                                    {% endif %}">
+                                    {{ survey.status|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ survey.updated_at|date:"M d, Y" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="{% url 'land_registry:survey_list' %}" 
+               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                View Pending Surveys
+            </a>
+            <a href="{% url 'land_registry:survey_map' %}"
+               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                Open Survey Map
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

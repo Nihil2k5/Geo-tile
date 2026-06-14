@@ -1,0 +1,764 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Register Land - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
+<style>
+    #map {
+        width: 100%;
+        height: 500px;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .registration-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    }
+    .form-section {
+        transition: all 0.3s ease;
+    }
+    .form-section:hover {
+        transform: translateY(-2px);
+    }
+    .blockchain-status {
+        background: linear-gradient(135deg, #1a1f3c 0%, #2d3867 100%);
+        color: #fff;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.5rem;
+    }
+    .status-connected {
+        background-color: #10B981;
+    }
+    .network-badge {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        margin-left: 1rem;
+    }
+    .transaction-hash {
+        display: none;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        color: #10B981;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+        font-family: monospace;
+        word-break: break-all;
+    }
+    .wallet-info {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+    }
+    .wallet-address {
+        margin-left: 0.5rem;
+        opacity: 0.8;
+    }
+    .address-details {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    .address-details dl {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    .address-details dt {
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+    .address-details dd {
+        color: #1e293b;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar_menu %}
+<li>
+    <a href="{% url 'land_registry:registrar_dashboard' %}" 
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Dashboard Overview
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:land_registration' %}"
+       class="block px-4 py-2 text-gray-700 bg-gray-100">
+        Register Land
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:verify_land' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Verify Land
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Register New Land Parcel</h2>
+    </div>
+
+    <div class="blockchain-status">
+        <div class="flex items-center">
+            <div>
+                <div class="flex items-center">
+                    <span class="status-indicator status-connected"></span>
+                    <span class="text-sm">Connected to Blockchain</span>
+                    <span class="network-badge">Quorum Private Network</span>
+                </div>
+                <div class="wallet-info mt-2">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <span class="wallet-address">{{ request.user.wallet_address }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="text-right">
+            <div class="text-sm opacity-80">Gas Price</div>
+            <div class="font-mono">0 (Gas-Free)</div>
+        </div>
+    </div>
+
+    <div class="registration-card p-6 rounded-lg">
+        <!-- Map Container -->
+        <div id="map" class="shadow-lg"></div>
+
+        <form method="POST" class="space-y-6" id="registrationForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Owner Selection -->
+            <div class="form-section bg-white p-4 rounded-lg shadow-sm">
+                <label for="owner" class="block text-sm font-medium text-gray-700 mb-2">Property Owner</label>
+                <select id="owner" name="owner" required
+                        class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">Select an owner</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Location and Coordinates -->
+            <div class="grid grid-cols-1 gap-4">
+                <div class="form-section bg-white p-4 rounded-lg shadow-sm">
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="location" name="location" required
+                               class="flex-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                               placeholder="Search location...">
+                        <button type="button" id="searchLocation"
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Address Details -->
+                    <div id="addressDetails" class="address-details hidden">
+                        <dl>
+                            <div>
+                                <dt>Street</dt>
+                                <dd id="street">-</dd>
+                            </div>
+                            <div>
+                                <dt>District/Area</dt>
+                                <dd id="district">-</dd>
+                            </div>
+                            <div>
+                                <dt>City</dt>
+                                <dd id="city">-</dd>
+                            </div>
+                            <div>
+                                <dt>State</dt>
+                                <dd id="state">-</dd>
+                            </div>
+                            <div>
+                                <dt>Country</dt>
+                                <dd id="country">-</dd>
+                            </div>
+                            <div>
+                                <dt>Postal Code</dt>
+                                <dd id="postcode">-</dd>
+                            </div>
+                        </dl>
+                        <input type="hidden" id="fullAddress" name="full_address">
+                    </div>
+                </div>
+
+                <div class="form-section bg-white p-4 rounded-lg shadow-sm">
+                    <label for="coordinates" class="block text-sm font-medium text-gray-700 mb-2">Coordinates</label>
+                    <input type="text" id="coordinates" name="coordinates" readonly
+                           class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-gray-50"
+                           placeholder="Draw area on map">
+                </div>
+            </div>
+
+            <!-- Area and Description -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-section bg-white p-4 rounded-lg shadow-sm">
+                    <label for="area" class="block text-sm font-medium text-gray-700 mb-2">Area (m²)</label>
+                    <input type="number" id="area" name="area" step="0.01" required readonly
+                           class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-gray-50"
+                           placeholder="Area will be calculated automatically">
+                </div>
+
+                <div class="form-section bg-white p-4 rounded-lg shadow-sm">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Property Description</label>
+                    <textarea id="description" name="description" rows="3" required
+                              class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                              placeholder="Describe the property features, boundaries, etc."></textarea>
+                </div>
+            </div>
+
+            <!-- Bypass duplicate check option (shown when duplicate is detected) -->
+            <div id="duplicateWarning" class="hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="text-sm font-medium text-yellow-800 mb-1">Potential Duplicate Detected</h3>
+                        <p class="text-sm text-yellow-700 mb-2" id="duplicateMessage"></p>
+                        <label class="flex items-center cursor-pointer">
+                            <input id="bypass_duplicate_check" name="bypass_duplicate_check" type="checkbox" value="true" class="mr-2 rounded border-gray-300 text-primary focus:ring-primary">
+                            <span class="text-sm text-yellow-800">I confirm this is a different parcel (e.g., subdivision, different floor/unit)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legacy Document Support -->
+            <div class="form-section bg-white p-4 rounded-lg shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Legacy Document Support</h3>
+                    <div class="flex items-center">
+                        <input id="is_legacy" name="is_legacy" type="checkbox" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="is_legacy" class="ml-2 block text-sm text-gray-900">
+                            This is a legacy record
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="legacy_document_section">
+                    <label for="legacy_document" class="block text-sm font-medium text-gray-700 mb-2">Upload Legacy Document</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="legacy_document_file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span>Upload a file</span>
+                                    <input id="legacy_document_file" name="legacy_document" type="file" accept=".pdf,.png,.jpg,.jpeg,.gif">
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                PDF, PNG, JPG, GIF up to 10MB
+                            </p>
+                            <div id="file_preview" class="mt-2 hidden">
+                                <p class="text-sm text-gray-700">Selected file: <span id="file_name"></span></p>
+                                <button type="button" id="extract_ai_btn" class="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    AI Extract
+                                </button>
+                            </div>
+                            <div id="ai_results" class="mt-3 hidden">
+                                <h4 class="font-medium text-gray-700 mb-2">AI Extraction Results</h4>
+                                <div class="bg-gray-50 p-3 rounded-md border border-gray-200">
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <p class="text-gray-500">Document Type:</p>
+                                            <p id="ai_doc_type" class="font-medium">-</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Owner Name:</p>
+                                            <p id="ai_owner_name" class="font-medium">-</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Area:</p>
+                                            <p id="ai_area" class="font-medium">-</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Address:</p>
+                                            <p id="ai_address" class="font-medium">-</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Original Registration Details (Decentralized Documnet) -->
+            <div class="form-section bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Original Registration Details (Decentralized Documnet)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="survey_number" class="block text-sm font-medium text-gray-700 mb-2">Survey Number</label>
+                        <input type="text" id="survey_number" name="survey_number"
+                               class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                               placeholder="e.g., SN-1234">
+                    </div>
+                    <div>
+                        <label for="document_reference" class="block text-sm font-medium text-gray-700 mb-2">Document Reference</label>
+                        <input type="text" id="document_reference" name="document_reference"
+                               class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                               placeholder="e.g., RegDoc-2023-9876">
+                    </div>
+                    <div>
+                        <label for="village_name" class="block text-sm font-medium text-gray-700 mb-2">Village</label>
+                        <input type="text" id="village_name" name="village_name"
+                               class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                               placeholder="Village name">
+                    </div>
+                    <div>
+                        <label for="district_name" class="block text-sm font-medium text-gray-700 mb-2">District</label>
+                        <input type="text" id="district_name" name="district_name"
+                               class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                               placeholder="District name">
+                    </div>
+                    <div>
+                        <label for="state_name" class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                        <input type="text" id="state_name" name="state_name"
+                               class="focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                               placeholder="State name">
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">These details appear in the Decentralized Documnet document.</p>
+            </div>
+
+            <!-- Transaction Hash Display -->
+            <div id="transactionHash" class="transaction-hash"></div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end">
+                <button type="submit" id="submitButton"
+                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg transform transition hover:-translate-y-1">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Register on Blockchain
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script>
+    mapboxgl.accessToken = '{{ mapbox_token }}';
+    
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: [0, 0],
+        zoom: 2
+    });
+
+    const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+            polygon: true,
+            trash: true
+        }
+    });
+    map.addControl(draw);
+    map.addControl(new mapboxgl.NavigationControl());
+
+    const locationInput = document.getElementById('location');
+    const searchButton = document.getElementById('searchLocation');
+    const coordinatesInput = document.getElementById('coordinates');
+    const areaInput = document.getElementById('area');
+    const form = document.getElementById('registrationForm');
+    const transactionHash = document.getElementById('transactionHash');
+    const addressDetails = document.getElementById('addressDetails');
+    const fullAddressInput = document.getElementById('fullAddress');
+    
+    // Legacy document toggle
+    const isLegacyCheckbox = document.getElementById('is_legacy');
+    const legacyDocumentSection = document.getElementById('legacy_document_section');
+    const legacyDocumentInput = document.getElementById('legacy_document_file');
+    const filePreview = document.getElementById('file_preview');
+    const fileName = document.getElementById('file_name');
+    const extractAiBtn = document.getElementById('extract_ai_btn');
+    const aiResults = document.getElementById('ai_results');
+    
+    // Set initial state based on checkbox
+    if (isLegacyCheckbox.checked) {
+        legacyDocumentSection.style.display = 'block';
+    } else {
+        legacyDocumentSection.style.display = 'none';
+    }
+    
+    isLegacyCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            legacyDocumentSection.style.display = 'block';
+        } else {
+            legacyDocumentSection.style.display = 'none';
+        }
+    });
+    
+    // Handle file selection
+    legacyDocumentInput.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            fileName.textContent = file.name;
+            filePreview.classList.remove('hidden');
+            console.log('File selected:', file.name);
+        } else {
+            filePreview.classList.add('hidden');
+        }
+    });
+    
+    // Handle AI extraction - extract directly from uploaded file
+    extractAiBtn.addEventListener('click', async function() {
+        // Check if we have a file
+        if (!legacyDocumentInput.files || !legacyDocumentInput.files[0]) {
+            alert('Please select a file first');
+            return;
+        }
+        
+        // Show loading state
+        extractAiBtn.disabled = true;
+        extractAiBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing OCR...';
+        
+        try {
+            // Create form data with just the file
+            const formData = new FormData();
+            formData.append('document', legacyDocumentInput.files[0]);
+            
+            // Send file to OCR endpoint
+            const response = await fetch('{% url "land_registry:extract_document_ai" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            // Parse response
+            let responseData;
+            try {
+                responseData = await response.json();
+            } catch (parseError) {
+                const errorText = await response.text();
+                throw new Error(`Server error (${response.status}): ${errorText || 'Unknown error'}`);
+            }
+            
+            // Check if extraction was successful
+            if (!response.ok || !responseData.success) {
+                throw new Error(responseData.error || 'AI extraction failed');
+            }
+            
+            const aiData = responseData;
+            
+            // Show the AI results
+            document.getElementById('ai_doc_type').textContent = aiData.document_type || 'Unknown';
+            document.getElementById('ai_owner_name').textContent = aiData.data.owner_name || 'Not found';
+            document.getElementById('ai_area').textContent = aiData.data.area || 'Not found';
+            document.getElementById('ai_address').textContent = aiData.data.address || 'Not found';
+            
+            // Show the results section
+            aiResults.classList.remove('hidden');
+            
+            // Auto-fill form fields with extracted data
+            if (aiData.data.owner_name) {
+                // Find the owner select and try to select the matching owner
+                const ownerSelect = document.getElementById('owner');
+                if (ownerSelect) {
+                    const ownerOptions = Array.from(ownerSelect.options);
+                    const matchingOption = ownerOptions.find(option => 
+                        option.text.toLowerCase().includes(aiData.data.owner_name.toLowerCase())
+                    );
+                    
+                    if (matchingOption) {
+                        ownerSelect.value = matchingOption.value;
+                    }
+                }
+            }
+            
+            if (aiData.data.area) {
+                const areaInput = document.getElementById('area');
+                if (areaInput) {
+                    // Extract numeric value from area string if needed
+                    const areaMatch = aiData.data.area.match(/([\d.]+)/);
+                    if (areaMatch) {
+                        areaInput.value = areaMatch[1];
+                    } else {
+                        areaInput.value = aiData.data.area;
+                    }
+                }
+            }
+            
+            if (aiData.data.address) {
+                const fullAddressInput = document.getElementById('fullAddress');
+                const locationInput = document.getElementById('location');
+                if (fullAddressInput) {
+                    fullAddressInput.value = aiData.data.address;
+                }
+                if (locationInput) {
+                    locationInput.value = aiData.data.address;
+                }
+            }
+            
+            // Show success message
+            extractAiBtn.innerHTML = '<svg class="h-4 w-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Extraction Complete';
+            setTimeout(() => {
+                extractAiBtn.innerHTML = '<svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> AI Extract';
+            }, 2000);
+            
+        } catch (error) {
+            console.error('AI Extraction Error:', error);
+            alert('OCR Error: ' + error.message + '\n\nMake sure PaddleOCR is installed: pip install paddleocr');
+            extractAiBtn.innerHTML = '<svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> AI Extract';
+        } finally {
+            // Reset button state
+            extractAiBtn.disabled = false;
+        }
+    });
+
+    // Function to update address details
+    function updateAddressDetails(features) {
+        if (features.length > 0) {
+            const feature = features[0];
+            const context = feature.context || [];
+            const properties = feature.properties || {};
+            
+            // Extract address components
+            const address = {
+                street: feature.text || '-',
+                district: context.find(c => c.id.startsWith('district'))?.text || 
+                         context.find(c => c.id.startsWith('locality'))?.text || '-',
+                city: context.find(c => c.id.startsWith('place'))?.text || '-',
+                state: context.find(c => c.id.startsWith('region'))?.text || '-',
+                country: context.find(c => c.id.startsWith('country'))?.text || '-',
+                postcode: context.find(c => c.id.startsWith('postcode'))?.text || '-'
+            };
+
+            // Update the display
+            document.getElementById('street').textContent = address.street;
+            document.getElementById('district').textContent = address.district;
+            document.getElementById('city').textContent = address.city;
+            document.getElementById('state').textContent = address.state;
+            document.getElementById('country').textContent = address.country;
+            document.getElementById('postcode').textContent = address.postcode;
+
+            // Store full address
+            const fullAddress = `${address.street}, ${address.district}, ${address.city}, ${address.state}, ${address.country} ${address.postcode}`;
+            fullAddressInput.value = fullAddress;
+            locationInput.value = fullAddress;
+
+            // Auto-fill Decentralized Documnet fields if present
+            const villageInput = document.getElementById('village_name');
+            const districtInput = document.getElementById('district_name');
+            const stateInput = document.getElementById('state_name');
+            if (villageInput) villageInput.value = address.city !== '-' ? address.city : (address.district !== '-' ? address.district : '');
+            if (districtInput) districtInput.value = address.district !== '-' ? address.district : '';
+            if (stateInput) stateInput.value = address.state !== '-' ? address.state : '';
+
+            // Show address details
+            addressDetails.classList.remove('hidden');
+        }
+    }
+
+    searchButton.addEventListener('click', () => {
+        const location = locationInput.value;
+        if (!location) return;
+
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json?access_token=${mapboxgl.accessToken}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features.length > 0) {
+                    const [lng, lat] = data.features[0].center;
+                    map.flyTo({
+                        center: [lng, lat],
+                        zoom: 15,
+                        essential: true
+                    });
+                    updateAddressDetails(data.features);
+                }
+            });
+    });
+
+    // Add click handler for reverse geocoding
+    map.on('click', (e) => {
+        const { lng, lat } = e.lngLat;
+        
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features.length > 0) {
+                    updateAddressDetails(data.features);
+                }
+            });
+    });
+
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
+
+    function updateArea(e) {
+        const data = draw.getAll();
+        if (data.features.length > 0) {
+            const area = turf.area(data.features[0]);
+            const coordinates = JSON.stringify(data.features[0].geometry.coordinates);
+            
+            coordinatesInput.value = coordinates;
+            areaInput.value = Math.round(area * 100) / 100;
+        } else {
+            coordinatesInput.value = '';
+            areaInput.value = '';
+        }
+    }
+
+    // Add submission flag to prevent duplicate submissions
+    let isSubmitting = false;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Prevent duplicate submissions
+        if (isSubmitting) {
+            console.log('Form submission already in progress, ignoring duplicate request');
+            return;
+        }
+        
+        isSubmitting = true;
+        const submitButton = document.getElementById('submitButton');
+        submitButton.disabled = true;
+        submitButton.innerHTML = `
+            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing Transaction...
+        `;
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+
+            let result;
+            try {
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                result = await response.json();
+            } catch (error) {
+                console.error('Error parsing response:', error);
+                throw new Error('Failed to parse server response. Please try again.');
+            }
+
+            if (!response.ok) {
+                // Check if this is a duplicate check error that requires override
+                if (result.requires_override && result.duplicate_parcel_id) {
+                    // Show duplicate warning instead of error
+                    const duplicateWarning = document.getElementById('duplicateWarning');
+                    const duplicateMessage = document.getElementById('duplicateMessage');
+                    if (duplicateWarning && duplicateMessage) {
+                        duplicateMessage.textContent = result.error || `Parcel ID ${result.duplicate_parcel_id} has identical coordinates and area.`;
+                        duplicateWarning.classList.remove('hidden');
+                        // Scroll to warning
+                        duplicateWarning.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    throw new Error(result.error || 'Duplicate parcel detected - please confirm if this is a different parcel');
+                }
+                throw new Error(result.error || `Server error: ${response.status}`);
+            }
+            if (result.success) {
+                // Display transaction hash
+                transactionHash.style.display = 'block';
+                transactionHash.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-medium mb-1">Transaction Successful!</div>
+                            <div class="text-sm">Transaction Hash:</div>
+                            <div class="text-xs mt-1">${result.tx_hash || 'Processing...'}</div>
+                        </div>
+                        <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                `;
+                
+                // Redirect after 3 seconds
+                setTimeout(() => {
+                    window.location.href = '{% url "land_registry:registrar_dashboard" %}';
+                }, 3000);
+            } else {
+                throw new Error(result.error || 'Registration failed');
+            }
+        } catch (error) {
+            isSubmitting = false; // Reset submission flag on error
+            submitButton.disabled = false;
+            submitButton.innerHTML = `
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Register on Blockchain
+            `;
+            
+            // Display error in a more user-friendly way
+            transactionHash.style.display = 'block';
+            transactionHash.innerHTML = `
+                <div class="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <div>
+                        <div class="font-medium mb-1">Registration Failed</div>
+                        <div class="text-sm">${error.message}</div>
+                    </div>
+                    <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+            `;
+        }
+    });
+</script>
+{% endblock %}

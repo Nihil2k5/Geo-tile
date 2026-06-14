@@ -1,0 +1,174 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Resolve Dispute{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Resolve Dispute</h1>
+        <p class="text-gray-600">Review and resolve land dispute case</p>
+    </div>
+
+    <!-- Dispute Details -->
+    <div class="mb-8 bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Dispute Information
+            </h3>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Dispute ID</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ dispute.id }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                    <dd class="mt-1">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if dispute.status == 'open' %}bg-yellow-100 text-yellow-800
+                            {% elif dispute.status == 'under_review' %}bg-blue-100 text-blue-800
+                            {% elif dispute.status == 'resolved' %}bg-green-100 text-green-800
+                            {% elif dispute.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ dispute.status }}
+                        </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Filed By</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ dispute.complainant.get_full_name|default:dispute.complainant.username }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Filed Date</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ dispute.created_at|date:"M d, Y" }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Property Details</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        <div class="border rounded-md p-4">
+                            <div class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+                                <div>
+                                    <span class="font-medium">Location:</span>
+                                    {{ dispute.parcel.location|default:"N/A" }}
+                                </div>
+                                <div>
+                                    <span class="font-medium">Area:</span>
+                                    {{ dispute.parcel.area|floatformat:2 }} m²
+                                </div>
+                                <div>
+                                    <span class="font-medium">Owner:</span>
+                                    {{ dispute.parcel.owner.get_full_name|default:dispute.parcel.owner.username }}
+                                </div>
+                                <div>
+                                    <span class="font-medium">Registration Date:</span>
+                                    {{ dispute.parcel.created_at|date:"M d, Y" }}
+                                </div>
+                                <div>
+                                    <span class="font-medium">Status:</span>
+                                    {{ dispute.parcel.status|title }}
+                                </div>
+                                <div>
+                                    <span class="font-medium">Description:</span>
+                                    {{ dispute.parcel.description|default:"No description available" }}
+                                </div>
+                            </div>
+                        </div>
+                    </dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Dispute Description</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ dispute.description }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Supporting Documents</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        <ul class="border rounded-md divide-y divide-gray-200">
+                            {% if dispute.evidence %}
+                            <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                <div class="w-0 flex-1 flex items-center">
+                                    <svg class="flex-shrink-0 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span class="ml-2 flex-1 w-0 truncate">
+                                        Dispute Evidence - {{ dispute.evidence.name|default:"evidence_file" }}
+                                    </span>
+                                </div>
+                                <div class="ml-4 flex-shrink-0">
+                                    <a href="{{ dispute.evidence.url }}" target="_blank" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                        Download
+                                    </a>
+                                </div>
+                            </li>
+                            {% endif %}
+                            {% if dispute.parcel.legacy_document %}
+                            <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                <div class="w-0 flex-1 flex items-center">
+                                    <svg class="flex-shrink-0 h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span class="ml-2 flex-1 w-0 truncate">
+                                        Legacy Document - {{ dispute.parcel.legacy_document.name|default:"legacy_document" }}
+                                    </span>
+                                </div>
+                                <div class="ml-4 flex-shrink-0">
+                                    <a href="{{ dispute.parcel.legacy_document.url }}" target="_blank" class="font-medium text-green-600 hover:text-green-500">
+                                        Download
+                                    </a>
+                                </div>
+                            </li>
+                            {% endif %}
+                            {% if not dispute.evidence and not dispute.parcel.legacy_document %}
+                            <li class="pl-3 pr-4 py-3 text-sm text-gray-500">
+                                No documents attached
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Resolution Form -->
+    {% if dispute.status != 'resolved' %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Dispute Resolution
+            </h3>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+            <form method="POST" class="space-y-6">
+                {% csrf_token %}
+                <div>
+                    <label for="resolution" class="block text-sm font-medium text-gray-700">Resolution Decision</label>
+                    <select id="resolution" name="resolution" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">Select decision...</option>
+                        <option value="approved">Approve Claim</option>
+                        <option value="rejected">Reject Claim</option>
+                        <option value="partial">Partial Resolution</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700">Resolution Notes</label>
+                    <textarea id="notes" name="notes" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Provide detailed explanation for your decision. This will be recorded on the blockchain.
+                    </p>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <a href="{% url 'land_registry:dispute_list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Cancel
+                    </a>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Submit Resolution
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

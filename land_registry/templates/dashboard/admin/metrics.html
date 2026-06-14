@@ -1,0 +1,128 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}System Metrics - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block sidebar_menu %}
+<li>
+    <a href="{% url 'land_registry:admin_dashboard' %}" 
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Dashboard Overview
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:user_management' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        User Management
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:system_metrics' %}"
+       class="block px-4 py-2 text-gray-700 bg-gray-100">
+        System Metrics
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-2xl font-bold">System Metrics</h2>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Total Land Area</h3>
+            <p class="text-3xl font-bold text-primary mt-2">
+                {{ total_land_area|floatformat:2 }} m²
+            </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Dispute Resolution Rate</h3>
+            <p class="text-3xl font-bold text-primary mt-2">
+                {{ dispute_resolution_rate|floatformat:1 }}%
+            </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Transaction Volume</h3>
+            <p class="text-3xl font-bold text-primary mt-2">
+                {{ transaction_volume }}
+            </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Verification Success Rate</h3>
+            <p class="text-3xl font-bold text-primary mt-2">
+                {{ verification_success_rate|floatformat:1 }}%
+            </p>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Transaction History</h3>
+            <canvas id="transactionChart"></canvas>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Land Distribution</h3>
+            <canvas id="landDistributionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% block extra_scripts %}
+<script>
+    // Transaction History Chart
+    const transactionCtx = document.getElementById('transactionChart').getContext('2d');
+    new Chart(transactionCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Transactions',
+                data: [12, 19, 3, 5, 2, 3],
+                borderColor: '#1a56db',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Land Distribution Chart
+    const landCtx = document.getElementById('landDistributionChart').getContext('2d');
+    new Chart(landCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Residential', 'Commercial', 'Agricultural', 'Industrial'],
+            datasets: [{
+                data: [30, 20, 35, 15],
+                backgroundColor: [
+                    '#1a56db',
+                    '#7e3af2',
+                    '#047481',
+                    '#057a55'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

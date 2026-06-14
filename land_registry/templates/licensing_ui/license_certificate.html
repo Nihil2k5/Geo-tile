@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}License Certificate - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* A4 Size: 210mm x 297mm (8.27" x 11.69") */
+    @page {
+        size: A4;
+        margin: 0;
+    }
+    
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            background: white;
+            margin: 0;
+            padding: 0;
+        }
+        .certificate-container {
+            box-shadow: none;
+            border: none;
+            margin: 0;
+            padding: 15mm;
+            width: 210mm;
+            height: 297mm;
+            page-break-after: avoid;
+        }
+        .certificate-wrapper {
+            margin: 0;
+            padding: 0;
+        }
+    }
+    
+    .certificate-wrapper {
+        max-width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        background: white;
+        position: relative;
+    }
+    
+    .certificate-container {
+        width: 100%;
+        min-height: 297mm;
+        padding: 20mm;
+        background: white;
+        position: relative;
+        box-sizing: border-box;
+    }
+    
+    .certificate-border {
+        border: 6px solid #1e40af;
+        border-radius: 12px;
+        position: absolute;
+        top: 15mm;
+        left: 15mm;
+        right: 15mm;
+        bottom: 15mm;
+        pointer-events: none;
+    }
+    
+    .certificate-corner {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border: 3px solid #3b82f6;
+    }
+    
+    .certificate-corner.top-left {
+        top: 12mm;
+        left: 12mm;
+        border-right: none;
+        border-bottom: none;
+        border-radius: 8px 0 0 0;
+    }
+    
+    .certificate-corner.top-right {
+        top: 12mm;
+        right: 12mm;
+        border-left: none;
+        border-bottom: none;
+        border-radius: 0 8px 0 0;
+    }
+    
+    .certificate-corner.bottom-left {
+        bottom: 12mm;
+        left: 12mm;
+        border-right: none;
+        border-top: none;
+        border-radius: 0 0 0 8px;
+    }
+    
+    .certificate-corner.bottom-right {
+        bottom: 12mm;
+        right: 12mm;
+        border-left: none;
+        border-top: none;
+        border-radius: 0 0 8px 0;
+    }
+    
+    .seal {
+        background: radial-gradient(circle, #3b82f6 0%, #1e40af 100%);
+        border: 3px solid #1e3a8a;
+        width: 100px;
+        height: 100px;
+    }
+    
+    .certificate-content {
+        position: relative;
+        z-index: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 py-12">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header Actions -->
+        <div class="no-print flex items-center justify-between mb-6">
+            <a href="{% url 'land_registry:gov_admin_overview' %}" class="text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Licensing
+            </a>
+            <div class="flex gap-3">
+                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg inline-flex items-center">
+                    <i class="fas fa-print mr-2"></i>Print Certificate
+                </button>
+                <button onclick="downloadCertificate()" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg inline-flex items-center">
+                    <i class="fas fa-download mr-2"></i>Download PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- A4 Certificate Wrapper -->
+        <div class="certificate-wrapper bg-white shadow-2xl mx-auto">
+            <!-- Decorative Border -->
+            <div class="certificate-border"></div>
+            <div class="certificate-corner top-left"></div>
+            <div class="certificate-corner top-right"></div>
+            <div class="certificate-corner bottom-left"></div>
+            <div class="certificate-corner bottom-right"></div>
+            
+            <!-- Certificate Container -->
+            <div class="certificate-container certificate-content">
+            <!-- Certificate Header -->
+            <div class="text-center mb-8">
+                <div class="inline-block bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-8 py-4 rounded-lg mb-4">
+                    <i class="fas fa-certificate text-4xl mb-2 block"></i>
+                    <h1 class="text-3xl sm:text-4xl font-bold">GOVERNMENT LICENSE</h1>
+                    <p class="text-blue-100 text-lg mt-1">GeoLedger Land Registry System</p>
+                </div>
+            </div>
+
+            <!-- Certificate Body -->
+            <div class="space-y-8">
+                <!-- License Number -->
+                <div class="text-center border-b-2 border-gray-300 pb-6">
+                    <div class="text-sm text-gray-600 mb-2">License Number</div>
+                    <div class="text-3xl font-bold text-gray-900 font-mono">{{ license.license_number }}</div>
+                </div>
+
+                <!-- Institution Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">Institution Name</div>
+                        <div class="text-xl font-bold text-gray-900">{{ license.institution_name }}</div>
+                        <div class="text-sm text-gray-600 mt-1">{{ license.institution_type }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">License Type</div>
+                        <div class="text-xl font-bold text-gray-900">{{ license.get_license_type_display }}</div>
+                    </div>
+                </div>
+
+                <!-- Jurisdiction -->
+                {% if license.jurisdiction_state or license.jurisdiction_district %}
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="text-sm text-gray-600 mb-2">Jurisdiction</div>
+                    <div class="text-lg font-semibold text-gray-900">
+                        {% if license.jurisdiction_district %}{{ license.jurisdiction_district }}{% endif %}
+                        {% if license.jurisdiction_state %}{% if license.jurisdiction_district %}, {% endif %}{{ license.jurisdiction_state }}{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Validity Period -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600 mb-2">Valid From</div>
+                            <div class="text-2xl font-bold text-blue-900">{{ license.valid_from|date:"F d, Y" }}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600 mb-2">Valid Until</div>
+                            <div class="text-2xl font-bold text-blue-900">{{ license.valid_until|date:"F d, Y" }}</div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <div class="inline-flex items-center px-4 py-2 rounded-full {% if license.is_valid %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            <i class="fas fa-circle-check mr-2"></i>
+                            <span class="font-semibold">
+                                {% if license.is_valid %}
+                                    Active License (Expires in {{ license.days_until_expiry }} days)
+                                {% else %}
+                                    License Expired
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enabled Modules -->
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="text-sm text-gray-600 mb-4">Enabled Modules</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {% for module in enabled_modules %}
+                        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-600 text-white rounded-lg p-2">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-gray-900">{{ module.name }}</div>
+                                    <div class="text-xs text-gray-600">{{ module.description|truncatewords:8 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-span-2 text-gray-500 text-center py-4">No modules enabled</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Usage Limits -->
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="text-sm text-gray-600 mb-4">Usage Limits</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-600">User Accounts</span>
+                                <span class="font-semibold text-gray-900">{{ license.current_user_count }} / {% if license.max_users > 0 %}{{ license.max_users }}{% else %}Unlimited{% endif %}</span>
+                            </div>
+                            {% if license.max_users > 0 %}
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-blue-600 h-3 rounded-full" style="width: {% widthratio license.current_user_count license.max_users 100 %}%"></div>
+                            </div>
+                            {% else %}
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-blue-600 h-3 rounded-full" style="width: 100%"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-600">API Calls (Monthly)</span>
+                                <span class="font-semibold text-gray-900">{{ license.current_month_api_calls }} / {% if license.max_api_calls_per_month > 0 %}{{ license.max_api_calls_per_month }}{% else %}Unlimited{% endif %}</span>
+                            </div>
+                            {% if license.max_api_calls_per_month > 0 %}
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-green-600 h-3 rounded-full" style="width: {% widthratio license.current_month_api_calls license.max_api_calls_per_month 100 %}%"></div>
+                            </div>
+                            {% else %}
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-green-600 h-3 rounded-full" style="width: 100%"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="text-sm text-gray-600 mb-4">Primary Contact</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-500">Contact Name</div>
+                            <div class="font-semibold text-gray-900">{{ license.primary_contact_name }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">Email</div>
+                            <div class="font-semibold text-gray-900">{{ license.primary_contact_email }}</div>
+                        </div>
+                        {% if license.primary_contact_phone %}
+                        <div>
+                            <div class="text-xs text-gray-500">Phone</div>
+                            <div class="font-semibold text-gray-900">{{ license.primary_contact_phone }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Approval Information -->
+                {% if license.approved_by %}
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="text-sm text-gray-600 mb-4">Approval Details</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-500">Approved By</div>
+                            <div class="font-semibold text-gray-900">{{ license.approved_by.get_full_name|default:license.approved_by.username }}</div>
+                        </div>
+                        {% if license.approved_at %}
+                        <div>
+                            <div class="text-xs text-gray-500">Approval Date</div>
+                            <div class="font-semibold text-gray-900">{{ license.approved_at|date:"F d, Y" }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Blockchain Hash -->
+                {% if license.license_hash %}
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="text-sm text-gray-600 mb-2">Blockchain Audit Hash</div>
+                    <div class="font-mono text-xs text-gray-700 bg-gray-50 p-3 rounded-lg break-all">{{ license.license_hash }}</div>
+                    <div class="text-xs text-gray-500 mt-1">This hash is recorded on the blockchain for tamper-proof verification</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Certificate Footer -->
+            <div class="mt-12 pt-8 border-t-4 border-gray-300">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <!-- Official Seal -->
+                    <div class="seal w-32 h-32 rounded-full mx-auto md:mx-0 flex items-center justify-center text-white">
+                        <div class="text-center">
+                            <i class="fas fa-shield-halved text-4xl mb-2"></i>
+                            <div class="text-xs font-bold">OFFICIAL</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Certificate Statement -->
+                    <div class="text-center md:text-right flex-1">
+                        <div class="text-sm text-gray-600 mb-2">This certifies that</div>
+                        <div class="text-lg font-bold text-gray-900 mb-4">{{ license.institution_name }}</div>
+                        <div class="text-sm text-gray-700">
+                            is authorized to use the GeoLedger Land Registry System<br>
+                            in accordance with the terms and conditions of this license.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Issue Date -->
+                <div class="text-center mt-8 text-sm text-gray-600">
+                    Certificate Issued: {{ license.created_at|date:"F d, Y" }}
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- Certificate Verification -->
+        <div class="no-print mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6 max-w-4xl mx-auto">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Certificate Verification</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <div class="text-sm text-gray-600 mb-1">License Number</div>
+                    <div class="font-mono text-gray-900">{{ license.license_number }}</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600 mb-1">Status</div>
+                    <div class="font-semibold {% if license.is_valid %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ license.get_status_display }}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-info-circle mr-1"></i>
+                This certificate can be verified through the GeoLedger licensing administration portal.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadCertificate() {
+    // Create a new window for printing (which can be saved as PDF)
+    window.print();
+}
+</script>
+{% endblock %}

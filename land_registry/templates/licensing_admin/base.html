@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Licensing Admin - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    .admin-sidebar {
+        min-height: calc(100vh - 64px);
+        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    }
+    .admin-nav-link {
+        transition: all 0.2s;
+    }
+    .admin-nav-link:hover {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 3px solid #3b82f6;
+    }
+    .admin-nav-link.active {
+        background: rgba(59, 130, 246, 0.2);
+        border-left: 3px solid #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pt-16">
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar w-64 fixed left-0 top-16 p-4 text-white">
+            <div class="mb-6">
+                <h2 class="text-xl font-bold mb-2">Licensing Admin</h2>
+                <p class="text-sm text-gray-400">Provider Administration</p>
+            </div>
+            
+            <nav class="space-y-1">
+                <a href="{% url 'land_registry:licensing_admin_dashboard' %}" 
+                   class="admin-nav-link {% if request.resolver_match.url_name == 'licensing_admin_dashboard' %}active{% endif %} block px-4 py-2 rounded-lg text-sm">
+                    <i class="fas fa-chart-line mr-2"></i>Dashboard
+                </a>
+                <a href="{% url 'land_registry:licensing_admin_licenses' %}" 
+                   class="admin-nav-link {% if 'license' in request.resolver_match.url_name %}active{% endif %} block px-4 py-2 rounded-lg text-sm">
+                    <i class="fas fa-certificate mr-2"></i>Licenses
+                </a>
+                <a href="{% url 'land_registry:licensing_admin_requests' %}" 
+                   class="admin-nav-link {% if 'request' in request.resolver_match.url_name %}active{% endif %} block px-4 py-2 rounded-lg text-sm">
+                    <i class="fas fa-clipboard-list mr-2"></i>Requests
+                    {% if pending_requests_count %}
+                    <span class="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ pending_requests_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'land_registry:licensing_admin_modules' %}" 
+                   class="admin-nav-link {% if 'module' in request.resolver_match.url_name %}active{% endif %} block px-4 py-2 rounded-lg text-sm">
+                    <i class="fas fa-puzzle-piece mr-2"></i>Modules
+                </a>
+                <a href="{% url 'land_registry:licensing_admin_audit_log' %}" 
+                   class="admin-nav-link {% if 'audit' in request.resolver_match.url_name %}active{% endif %} block px-4 py-2 rounded-lg text-sm">
+                    <i class="fas fa-history mr-2"></i>Audit Log
+                </a>
+                <div class="border-t border-gray-700 my-4"></div>
+                <a href="{% url 'land_registry:gov_admin_overview' %}" 
+                   class="admin-nav-link block px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white">
+                    <i class="fas fa-arrow-left mr-2"></i>Government View
+                </a>
+                <a href="{% url 'land_registry:dashboard' %}" 
+                   class="admin-nav-link block px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white">
+                    <i class="fas fa-home mr-2"></i>Main Dashboard
+                </a>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 ml-64 p-6">
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

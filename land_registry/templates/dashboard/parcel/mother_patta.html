@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ document_title }}</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: white;
+        }
+        
+        .document-header {
+            text-align: center;
+            border-bottom: 3px double #000;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .government-seal {
+            width: 300px;
+            height: 170px;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        
+        .document-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+            text-transform: uppercase;
+        }
+        
+        .sub-title {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        
+        .section {
+            margin: 25px 0;
+            page-break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .info-table td {
+            padding: 8px 12px;
+            border: 1px solid #000;
+            vertical-align: top;
+        }
+        
+        .info-table .label {
+            font-weight: bold;
+            background: #f5f5f5;
+            width: 30%;
+        }
+        
+        .ownership-history {
+            border: 2px solid #000;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .owner-entry {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #333;
+            background: #f9f9f9;
+        }
+        
+        .current-owner {
+            border-left-color: #007bff;
+            background: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .transaction-entry {
+            margin: 15px 0;
+            padding: 12px;
+            border: 1px solid #ccc;
+            background: #fafafa;
+        }
+        
+        .blockchain-hash {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            word-break: break-all;
+            background: #f0f0f0;
+            padding: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .qr-code-section {
+            text-align: center;
+            border: 2px solid #000;
+            padding: 20px;
+            margin: 20px 0;
+            background: #fafafa;
+        }
+        
+        .qr-code-image {
+            max-width: 150px;
+            max-height: 150px;
+            margin: 10px auto;
+            display: block;
+            border: 1px solid #ddd;
+        }
+        
+        .blockchain-info {
+            background: #e8f4fd;
+            border: 2px solid #007bff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .blockchain-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .blockchain-field {
+            background: white;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        .blockchain-field strong {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            border-top: 2px solid #000;
+            padding-top: 20px;
+            text-align: center;
+        }
+        
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .signature-box {
+            width: 200px;
+            text-align: center;
+        }
+        
+        .signature-line {
+            border-bottom: 1px solid #000;
+            height: 40px;
+            margin-bottom: 5px;
+        }
+        
+        @media print {
+            body { margin: 0; padding: 15px; }
+            .no-print { display: none !important; }
+        }
+        
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 72px;
+            color: rgba(0,0,0,0.05);
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Watermark -->
+    <div class="watermark">OFFICIAL DOCUMENT</div>
+    
+    <!-- Print Button -->
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Print Document
+        </button>
+    </div>
+
+    <!-- Document Header -->
+    <div class="document-header">
+        {% load static %}
+        <img src="{% static 'images/government_seal.svg' %}" alt="Government of India Seal" class="government-seal">
+        <div class="document-title">Decentralized Document</div>
+        <div class="sub-title">Complete Land Record Document</div>
+        <div class="sub-title">Parcel Registration Number: {{ parcel.id }}</div>
+        <div style="font-size: 12px; margin-top: 10px;">
+            Generated on: {{ generated_date|date:"F d, Y" }} at {{ generated_date|time:"H:i" }}
+        </div>
+    </div>
+
+    <!-- Basic Parcel Information -->
+    <div class="section">
+        <div class="section-title">Basic Parcel Information</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Parcel ID</td>
+                <td>{{ parcel.id }}</td>
+                <td class="label">Survey Number</td>
+                <td>{{ parcel.original_survey_number|default:"Not Specified" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Total Area</td>
+                <td>{{ parcel.area }} m²</td>
+                <td class="label">Document Reference</td>
+                <td>{{ parcel.original_document_reference|default:"Not Specified" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Village</td>
+                <td>{{ parcel.village_name|default:"Not Specified" }}</td>
+                <td class="label">District</td>
+                <td>{{ parcel.district_name|default:"Not Specified" }}</td>
+            </tr>
+            <tr>
+                <td class="label">State</td>
+                <td>{{ parcel.state_name|default:"Not Specified" }}</td>
+                <td class="label">Current Status</td>
+                <td>{{ parcel.get_status_display }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- QR Code Verification Section -->
+    <div class="section">
+        <div class="section-title">Digital Verification QR Code</div>
+        <div class="qr-code-section">
+            {% if parcel.qr_code %}
+                <img src="{{ parcel.qr_code.url }}" alt="Parcel Verification QR Code" class="qr-code-image">
+                <div style="margin-top: 15px;">
+                    <strong>Scan QR Code for Instant Verification</strong><br>
+                    <small>This QR code contains encrypted parcel information and can be used to verify the authenticity of this document through the blockchain land registry system.</small>
+                </div>
+            {% else %}
+                <div style="padding: 20px; background: #fff3cd; border: 1px solid #ffeaa7; color: #856404;">
+                    <strong>QR Code Generation in Progress</strong><br>
+                    <small>The verification QR code is being generated. Please refresh the page in a moment.</small>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Original Registration Details -->
+    {% if parcel.original_owner %}
+    <div class="section">
+        <div class="section-title">Original Registration Details</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Original Owner</td>
+                <td>{{ parcel.original_owner }}</td>
+                <td class="label">Registration Date</td>
+                <td>{{ parcel.original_registration_date|date:"F d, Y" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Original Registrar</td>
+                <td>{{ parcel.original_registrar|default:"Not Specified" }}</td>
+                <td class="label">Original Area</td>
+                <td>{{ parcel.original_area|default:"Same as current" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Original Coordinates</td>
+                <td colspan="3">{{ parcel.original_coordinates|default:"Not Specified" }}</td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Current Ownership -->
+    <div class="section">
+        <div class="section-title">Current Ownership</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Current Owner</td>
+                <td>{{ parcel.owner.get_full_name }}</td>
+                <td class="label">Owner Email</td>
+                <td>{{ parcel.owner.email }}</td>
+            </tr>
+            <tr>
+                <td class="label">Ownership Since</td>
+                <td colspan="3">
+                    {% for owner_info in complete_history.ownership_chain %}
+                        {% if forloop.last %}
+                            {{ owner_info.from_date|date:"F d, Y"|default:"Original Registration" }}
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Complete Ownership History -->
+    <div class="section">
+        <div class="section-title">Complete Ownership History</div>
+        <div class="ownership-history">
+            {% for owner_info in complete_history.ownership_chain %}
+            <div class="owner-entry {% if forloop.last %}current-owner{% endif %}">
+                <strong>{{ forloop.counter }}. {{ owner_info.owner_name }}</strong>
+                {% if forloop.last %}
+                    <span style="float: right; color: #007bff;">[CURRENT OWNER]</span>
+                {% endif %}
+                <br>
+                <small>
+                    Period: 
+                    {% if owner_info.from_date %}
+                        {{ owner_info.from_date|date:"F d, Y" }}
+                    {% else %}
+                        Original Registration
+                    {% endif %}
+                    {% if owner_info.to_date %}
+                        to {{ owner_info.to_date|date:"F d, Y" }}
+                    {% else %}
+                        to Present
+                    {% endif %}
+                </small>
+            </div>
+            {% empty %}
+            <p>No ownership history available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="section">
+        <div class="section-title">Complete Transaction History</div>
+        {% for entry in complete_history.complete_history %}
+        <div class="transaction-entry">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong>
+                    {% if entry.change_type == 'registration' %}
+                        Initial Registration
+                    {% elif entry.change_type == 'transfer' %}
+                        Ownership Transfer
+                    {% elif entry.change_type == 'survey_update' %}
+                        Survey Update
+                    {% elif entry.change_type == 'status_change' %}
+                        Status Change
+                    {% elif entry.change_type == 'dispute_filed' %}
+                        Dispute Filed
+                    {% elif entry.change_type == 'dispute_resolved' %}
+                        Dispute Resolved
+                    {% else %}
+                        {{ entry.get_change_type_display }}
+                    {% endif %}
+                </strong>
+                <span style="font-size: 12px;">{{ entry.timestamp|date:"F d, Y H:i" }}</span>
+            </div>
+            
+            {% if entry.notes %}
+            <div style="margin: 8px 0;">
+                <strong>Details:</strong> {{ entry.notes }}
+            </div>
+            {% endif %}
+            
+            {% if entry.changed_by__first_name %}
+            <div style="margin: 8px 0;">
+                <strong>Authorized by:</strong> {{ entry.changed_by__first_name }} {{ entry.changed_by__last_name }}
+            </div>
+            {% endif %}
+            
+            {% if entry.blockchain_tx_hash %}
+            <div class="blockchain-info">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <strong style="color: #007bff; font-size: 14px;">🔗 BLOCKCHAIN VERIFIED TRANSACTION</strong>
+                </div>
+                <div class="blockchain-details">
+                    <div class="blockchain-field">
+                        <strong>Transaction Hash:</strong>
+                        <div class="blockchain-hash">{{ entry.blockchain_tx_hash }}</div>
+                    </div>
+                    <div class="blockchain-field">
+                        <strong>Block Timestamp:</strong>
+                        <div>{{ entry.timestamp|date:"F d, Y H:i:s" }}</div>
+                    </div>
+                    <div class="blockchain-field">
+                        <strong>Network:</strong>
+                        <div>Quorum Private Network</div>
+                    </div>
+                    <div class="blockchain-field">
+                        <strong>Verification Status:</strong>
+                        <div style="color: #28a745; font-weight: bold;">✓ VERIFIED</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 10px; font-size: 11px; color: #666;">
+                    This transaction is permanently recorded on the blockchain and cannot be altered or deleted.
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p>No transaction history available.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Verification Section -->
+    <div class="section">
+        <div class="section-title">Document Verification & Blockchain Information</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Document Generated</td>
+                <td>{{ generated_date|date:"F d, Y" }} at {{ generated_date|time:"H:i" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Blockchain Network</td>
+                <td>Quorum Private Network - Immutable Land Registry</td>
+            </tr>
+            <tr>
+                <td class="label">Smart Contract</td>
+                <td>Land Registry NFT Contract (ERC-721)</td>
+            </tr>
+            <tr>
+                <td class="label">Token ID</td>
+                <td>
+                    {% if token_id %}
+                        {{ token_id }}
+                    {% else %}
+                        Pending Blockchain Registration
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">QR Code Verification</td>
+                <td>{% if parcel.qr_code %}Available - Scan QR code above for instant verification{% else %}Generating...{% endif %}</td>
+            </tr>
+            <tr>
+                <td class="label">Blockchain Verified</td>
+                <td>✓ Yes - All transactions are cryptographically secured and immutable</td>
+            </tr>
+            <tr>
+                <td class="label">Digital Signature</td>
+                <td>✓ Cryptographically signed and verified through blockchain consensus</td>
+            </tr>
+            <tr>
+                <td class="label">Document Authenticity</td>
+                <td>This document can be verified through QR code scanning or blockchain transaction lookup</td>
+            </tr>
+            {% if mother_patta_ipfs_hash %}
+            <tr>
+                <td class="label">IPFS Storage</td>
+                <td>
+                    <div style="margin: 5px 0;">
+                        <strong>IPFS Hash:</strong> <code style="font-size: 11px; background: #f5f5f5; padding: 2px 5px; border-radius: 3px;">{{ mother_patta_ipfs_hash }}</code>
+                        {% if not mother_patta_ipfs_hash_valid %}
+                        <span style="color: #dc3545; font-size: 10px; margin-left: 5px;">(Invalid format - cannot generate URLs)</span>
+                        {% endif %}
+                    </div>
+                    {% if mother_patta_ipfs_hash_valid %}
+                    <div style="margin-top: 10px;">
+                        {% if mother_patta_ipfs_url %}
+                        <a href="{{ mother_patta_ipfs_url }}" target="_blank" 
+                           style="display: inline-block; padding: 5px 10px; background: #007bff; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; margin-right: 5px;">
+                            View on IPFS (Local)
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #666;">
+                        This document is permanently stored on IPFS and can be accessed using the hash above.
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+        
+        {% if parcel.qr_code %}
+        <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border: 1px solid #4caf50; border-radius: 5px;">
+            <strong style="color: #2e7d32;">🔒 Verification Instructions:</strong><br>
+            <small>
+                1. Scan the QR code above with any QR code reader<br>
+                2. Visit the verification URL or use our mobile app<br>
+                3. Compare the displayed information with this document<br>
+                4. Check blockchain transaction hashes for complete audit trail<br>
+                {% if mother_patta_ipfs_hash %}
+                5. Access this document on IPFS using hash: <code>{{ mother_patta_ipfs_hash }}</code>
+                {% endif %}
+            </small>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div style="margin-bottom: 20px;">
+            <strong>IMPORTANT NOTICE:</strong><br>
+            This is an official Decentralized Documnet document generated from the blockchain-based land registry system.
+            All information contained herein is cryptographically verified and immutable.
+        </div>
+        
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div>Registrar Signature</div>
+                <div style="font-size: 10px;">Digital Signature Applied</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div>Official Seal</div>
+                <div style="font-size: 10px;">Blockchain Verified</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 10px; color: #666;">
+            This document is generated electronically and is valid without physical signature when verified through the blockchain system.
+        </div>
+    </div>
+</body>
+</html>

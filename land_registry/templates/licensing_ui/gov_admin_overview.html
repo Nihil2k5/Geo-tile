@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}Licensing & Features - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900">
+  <!-- Hero Section -->
+  <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white py-16">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto">
+        <h1 class="text-4xl sm:text-5xl font-bold mb-4">GeoLedger Licensing</h1>
+        <p class="text-xl text-blue-100 mb-8">Module-based access for government institutions. Choose the capabilities your organization needs.</p>
+        <div class="mt-6">
+          <a href="{% url 'land_registry:license_certificate' %}" 
+             class="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-3 rounded-lg inline-flex items-center shadow-lg hover:shadow-xl transition-all">
+            <i class="fas fa-certificate mr-2"></i>View Certificate
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- License Types / Pricing Tiers -->
+    <div class="mb-16">
+      <h2 class="text-3xl font-bold text-center mb-4">License Types</h2>
+      <p class="text-gray-600 text-center mb-12">Select the license type that matches your institution's needs</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Institution License -->
+        <div class="bg-white rounded-2xl shadow-xl border-2 border-gray-200 p-8 hover:border-blue-500 transition-all">
+          <div class="text-center mb-6">
+            <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-building text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Institution License</h3>
+            <p class="text-gray-600">State & District Administrations</p>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Full jurisdiction coverage</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Unlimited departments</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">High user capacity</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Priority support</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Department License -->
+        <div class="bg-white rounded-2xl shadow-xl border-2 border-blue-500 p-8 relative">
+          <div class="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 rounded-bl-lg rounded-tr-2xl text-sm font-semibold">
+            Popular
+          </div>
+          <div class="text-center mb-6">
+            <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-briefcase text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Department License</h3>
+            <p class="text-gray-600">Revenue, Registration, Courts</p>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Department-specific access</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Standard user capacity</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Module customization</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Standard support</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- API License -->
+        <div class="bg-white rounded-2xl shadow-xl border-2 border-gray-200 p-8 hover:border-blue-500 transition-all">
+          <div class="text-center mb-6">
+            <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-code text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">API License</h3>
+            <p class="text-gray-600">Banks & External Partners</p>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">API access only</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Monthly API call limits</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Documentation & support</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+              <span class="text-gray-700">Integration assistance</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features by Module -->
+    <div class="mb-16">
+      <h2 class="text-3xl font-bold text-center mb-4">Available Modules</h2>
+      <p class="text-gray-600 text-center mb-12">Each module adds specific capabilities to your license</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- LandCore Module -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="bg-blue-100 rounded-lg p-3">
+              <i class="fas fa-map-marked-alt text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">LandCore</h3>
+              <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">Mandatory</span>
+            </div>
+          </div>
+          <p class="text-gray-600 mb-4">Core land registry operations and management</p>
+          <ul class="space-y-2">
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Land parcel registration</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Ownership management</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Basic verification workflows</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Blockchain integration</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Digital document storage</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- LandVerify Module -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="bg-green-100 rounded-lg p-3">
+              <i class="fas fa-shield-check text-green-600 text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">LandVerify</h3>
+              <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-semibold">Optional</span>
+            </div>
+          </div>
+          <p class="text-gray-600 mb-4">Advanced verification workflows for banks and field validation</p>
+          <ul class="space-y-2">
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Bank-friendly verification APIs</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Field survey validation</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Document verification workflows</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Multi-party verification</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Verification audit trail</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- LandAudit Module -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="bg-purple-100 rounded-lg p-3">
+              <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">LandAudit</h3>
+              <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-semibold">Optional</span>
+            </div>
+          </div>
+          <p class="text-gray-600 mb-4">Fraud detection indicators and dispute analytics</p>
+          <ul class="space-y-2">
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Fraud detection algorithms</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Dispute analytics dashboard</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Risk assessment reports</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Pattern recognition</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Compliance monitoring</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- LandExchange Module -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="bg-orange-100 rounded-lg p-3">
+              <i class="fas fa-exchange-alt text-orange-600 text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">LandExchange</h3>
+              <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-semibold">Optional</span>
+            </div>
+          </div>
+          <p class="text-gray-600 mb-4">Advanced transfer workflows and digital asset management</p>
+          <ul class="space-y-2">
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Smart transfer workflows</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Multi-party transactions</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Automated approval chains</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Digital asset tracking</span>
+            </li>
+            <li class="flex items-start text-sm">
+              <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+              <span>Transfer history & analytics</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Features Overview -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-xl p-8 text-white mb-16">
+      <h2 class="text-3xl font-bold text-center mb-8">Why Choose GeoLedger?</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-shield-halved text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Secure & Compliant</h3>
+          <p class="text-blue-100">Blockchain-backed security with full audit trails and government compliance</p>
+        </div>
+        <div class="text-center">
+          <div class="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-puzzle-piece text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Modular & Flexible</h3>
+          <p class="text-blue-100">Choose only the modules you need. Upgrade anytime with approval workflow</p>
+        </div>
+        <div class="text-center">
+          <div class="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-headset text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Dedicated Support</h3>
+          <p class="text-blue-100">Government-friendly support with training, documentation, and assistance</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- License Certificate Section -->
+    {% if user.is_authenticated and user_license %}
+    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl shadow-lg border-2 border-indigo-200 p-8 mb-12">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Your License Certificate</h2>
+          <p class="text-gray-600">View your official GeoLedger license certificate with complete details</p>
+        </div>
+        <a href="{% url 'land_registry:license_certificate' %}" 
+           class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center justify-center shadow-lg hover:shadow-xl transition-all">
+          <i class="fas fa-certificate mr-2 text-xl"></i>View Certificate
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Call to Action -->
+    <div class="text-center">
+      <h2 class="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+      <p class="text-gray-600 mb-8">Contact your administrator or submit a license request</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        {% if user.is_authenticated %}
+        <a href="{% url 'land_registry:gov_request_upgrade' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center justify-center">
+          <i class="fas fa-arrow-up-right-dots mr-2"></i>Request License Upgrade
+        </a>
+        {% else %}
+        <a href="{% url 'land_registry:login' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center justify-center">
+          <i class="fas fa-sign-in-alt mr-2"></i>Login to Request License
+        </a>
+        {% endif %}
+        <a href="{% url 'land_registry:block_explorer' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold px-8 py-3 rounded-lg inline-flex items-center justify-center">
+          <i class="fas fa-cube mr-2"></i>Explore Platform
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Update Survey - GeoLedger{% endblock %}
+
+{% block extra_head %}
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
+<script src='https://unpkg.com/@turf/turf/turf.min.js'></script>
+<style>
+    #map {
+        width: 100%;
+        height: 500px;
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar_menu %}
+<li>
+    <a href="{% url 'land_registry:surveyor_dashboard' %}" 
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Dashboard Overview
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:survey_list' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Survey List
+    </a>
+</li>
+<li>
+    <a href="{% url 'land_registry:survey_map' %}"
+       class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+        Survey Map
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">Update Survey: Parcel #{{ parcel.id }}</h2>
+        <a href="{% url 'land_registry:survey_list' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+            Back to List
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Parcel Information</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Owner</p>
+                            <p class="text-base">{{ parcel.owner.get_full_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Location</p>
+                            <p class="text-base">{{ parcel.location }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Registered Area</p>
+                            <p class="text-base">{{ parcel.area|floatformat:2 }} m²</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Status</p>
+                            <p class="text-base">{{ parcel.status|title }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Survey Details</h3>
+                    <form method="post" id="surveyForm">
+                        {% csrf_token %}
+                        <div class="space-y-4">
+                            <div>
+                                <label for="area" class="block text-sm font-medium text-gray-700">Area (m²)</label>
+                                <input type="number" name="area" id="area" step="0.01" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="coordinates" class="block text-sm font-medium text-gray-700">Coordinates (GeoJSON)</label>
+                                <textarea name="coordinates" id="coordinates" rows="3" required
+                                          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                            </div>
+                            <div>
+                                <label for="boundaries" class="block text-sm font-medium text-gray-700">Boundary Description</label>
+                                <textarea name="boundaries" id="boundaries" rows="3" required
+                                          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                          placeholder="Describe the boundaries (e.g., North: River, East: Road 123, etc.)"></textarea>
+                            </div>
+                            <div class="pt-4">
+                                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    Update Survey
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Map</h3>
+                <div id="map"></div>
+                <p class="text-sm text-gray-500 mt-2">Use the drawing tools to mark the parcel boundaries on the map.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Initialize Mapbox
+    mapboxgl.accessToken = '{{ mapbox_token }}';
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: [0, 0], // Default center
+        zoom: 15
+    });
+
+    // Add drawing tools
+    const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+            polygon: true,
+            trash: true
+        }
+    });
+    map.addControl(draw);
+
+    // Get form elements
+    const coordinatesInput = document.getElementById('coordinates');
+    const areaInput = document.getElementById('area');
+    const surveyForm = document.getElementById('surveyForm');
+
+    // Center map on parcel location
+    fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/{{ parcel.location|escapejs }}.json?access_token=${mapboxgl.accessToken}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.features.length > 0) {
+                const [lng, lat] = data.features[0].center;
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: 15
+                });
+            }
+        });
+
+    // Update area when drawing changes
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
+
+    function updateArea(e) {
+        const data = draw.getAll();
+        if (data.features.length > 0) {
+            const area = turf.area(data.features[0]);
+            const coordinates = JSON.stringify(data.features[0].geometry.coordinates);
+            
+            coordinatesInput.value = coordinates;
+            areaInput.value = Math.round(area * 100) / 100;
+        }
+    }
+
+    // Load existing coordinates if available
+    {% if parcel.coordinates %}
+    map.on('load', function() {
+        try {
+            const parcelCoordinates = JSON.parse('{{ parcel.coordinates|escapejs }}');
+            draw.add({
+                type: 'Feature',
+                geometry: parcelCoordinates,
+                properties: {}
+            });
+            
+            // Calculate area
+            const area = turf.area({
+                type: 'Feature',
+                geometry: parcelCoordinates,
+                properties: {}
+            });
+            areaInput.value = Math.round(area * 100) / 100;
+            coordinatesInput.value = JSON.stringify(parcelCoordinates);
+        } catch (e) {
+            console.error("Error loading existing coordinates:", e);
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
